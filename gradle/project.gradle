@@ -1,0 +1,19 @@
+apply plugin: ApplicationPlugin
+
+group = 'nu.mine.mosher.gedcom'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_14
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += "--enable-preview"
+}
+
+tasks.withType(JavaExec) {
+    jvmArgs += "--enable-preview"
+}
+
+application {
+    mainClassName = 'nu.mine.mosher.gedcom.FtmWebView'
+}
