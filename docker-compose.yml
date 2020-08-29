@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  proxy:
+    image: 'nginx'
+    volumes:
+      - './build/libs/nginx.conf:/etc/nginx/nginx.conf:ro'
+    ports:
+      - "60080:80"
+
+  webserver:
+    image: 'tomcat:10-jdk14'
+    environment:
+      JAVA_OPTS: '--enable-preview'
+      ftm_dir: '/srv'
+    volumes:
+      - './build/libs/server.xml:/usr/local/tomcat/conf/server.xml:ro'
+      - './build/libs/context.xml:/usr/local/tomcat/conf/context.xml:ro'
+      - './build/libs/web.xml:/usr/local/tomcat/conf/web.xml:ro'
+      - './build/libs/ftm-web-view-1.0.0.war:/usr/local/tomcat/webapps/ROOT.war:ro'
+      - './example:/srv:ro'
+      - 'tomcat_logs:/usr/local/tomcat/logs'
+
+volumes:
+  tomcat_logs:

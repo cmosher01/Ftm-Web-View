@@ -1,3 +1,5 @@
+apply plugin: WarPlugin
+
 repositories {
     jcenter()
     mavenCentral()
@@ -6,6 +8,8 @@ repositories {
 
 dependencies {
     implementation group: 'org.xerial', name: 'sqlite-jdbc', version: 'latest.release'
+    implementation group: 'org.mybatis', name: 'mybatis', version: 'latest.release'
+    providedCompile group: 'jakarta.servlet', name: 'jakarta.servlet-api', version: 'latest.integration'
 
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'latest.release'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: 'latest.release'
@@ -13,10 +17,10 @@ dependencies {
     runtimeOnly group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.release'
     runtimeOnly group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.release'
 
-//    implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
+    implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
 
-//    runtimeOnly group: 'xerces', name: 'xercesImpl', version: 'latest.release', {
-//        exclude group: 'xml-apis'
-//    }
-//    runtimeOnly group: 'net.sf.saxon', name: 'Saxon-HE', version: 'latest.release'
+    runtimeOnly group: 'xerces', name: 'xercesImpl', version: 'latest.release', {
+        exclude group: 'xml-apis'
+    }
+    runtimeOnly group: 'net.sf.saxon', name: 'Saxon-HE', version: 'latest.release'
 }

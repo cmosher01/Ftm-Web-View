@@ -23,6 +23,8 @@ package nu.mine.mosher.gedcom;
 
 
 
+import checkers.units.quals.C;
+import org.apache.ibatis.session.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -67,15 +69,16 @@ public class FtmWebView {
 
     public static void main(final String... args) throws SQLException, IOException {
         LOG.debug("starting: {}", FtmWebView.class.getName());
+        mybatisPlay();
 
-        final List<IndexedDatabase> dbs = loadDatabaseIndex();
-        dbs.forEach(System.out::println);
+//        final List<IndexedDatabase> dbs = loadDatabaseIndex();
+//        dbs.forEach(System.out::println);
 
 //        rowsetTest(db);
 
-        final List<IndexedPerson> rPerson = new ArrayList<>();
-        loadPeopleIndex(dbs.get(0), rPerson);
-        rPerson.forEach(System.out::println);
+//        final List<IndexedPerson> rPerson = new ArrayList<>();
+//        loadPeopleIndex(dbs.get(0), rPerson);
+//        rPerson.forEach(System.out::println);
 
 //        final Map<Integer, Note> notes = new HashMap<>();
 //        loadNotes(db, new IndexedPerson(15, ""), notes);
@@ -98,6 +101,27 @@ public class FtmWebView {
         System.err.flush();
     }
 
+    private static void mybatisPlay() throws SQLException {
+        final SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
+
+        final Configuration config = new Configuration();
+        addMapsTo(config);
+        final SqlSessionFactory factory = builder.build(config);
+
+        try (final Connection conn = DriverManager.getConnection("jdbc:sqlite:root.ftm")) {
+            LOG.debug("database connection: auto-commit={}, transaction-isolation={}", conn.getAutoCommit(), conn.getTransactionIsolation());
+            try (final SqlSession session = factory.openSession(conn)) {
+                final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
+                final List<IndexedPerson> list = map.select();
+                list.forEach(p -> LOG.debug("person: {}", p));
+            }
+        }
+    }
+
+    private static void addMapsTo(final Configuration config) {
+        config.addMapper(PersonIndexMap.class);
+    }
+
     private static List<IndexedDatabase> loadDatabaseIndex() {
         return Arrays.stream(
             Paths.get("").
@@ -110,7 +134,7 @@ public class FtmWebView {
     }
 
     private static FileFilter ftmDbFilter() {
-        return f -> f.isFile() && f.canRead() && f.getName().toLowerCase().endsWith(".db");
+        return f -> f.isFile() && f.canRead() && f.getName().toLowerCase().endsWith(".ftm");
     }
 
     private static void rowsetTest(IndexedDatabase idb) throws SQLException, IOException {

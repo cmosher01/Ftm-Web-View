@@ -1,4 +1,4 @@
-apply plugin: ApplicationPlugin
+apply plugin: JavaLibraryPlugin
 
 group = 'nu.mine.mosher.gedcom'
 
@@ -6,14 +6,25 @@ java {
     sourceCompatibility = JavaVersion.VERSION_14
 }
 
-tasks.withType(JavaCompile) {
-    options.compilerArgs += "--enable-preview"
+compileJava {
+    options.compilerArgs << '-parameters'
+    options.compilerArgs << "--enable-preview"
 }
 
 tasks.withType(JavaExec) {
     jvmArgs += "--enable-preview"
 }
 
-application {
-    mainClassName = 'nu.mine.mosher.gedcom.FtmWebView'
+task copyTomcat(type: Copy) {
+    from 'src/main/tomcat'
+    into "${buildDir}/libs"
 }
+
+tasks.assemble.dependsOn tasks.copyTomcat
+
+task copyNginx(type: Copy) {
+    from 'src/main/nginx'
+    into "${buildDir}/libs"
+}
+
+tasks.assemble.dependsOn tasks.copyNginx
