@@ -23,4 +23,6 @@ dependencies {
         exclude group: 'xml-apis'
     }
     runtimeOnly group: 'net.sf.saxon', name: 'Saxon-HE', version: 'latest.release'
+
+    implementation group: 'org.apache.httpcomponents.client5', name: 'httpclient5', version: 'latest.release'
 }

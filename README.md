@@ -26,7 +26,7 @@ If canonical link: person or tree not found, then try searching in all trees.
 TODO: add some artificial intelligence to determine which entries are stubs,
 so we can redirect to the non-stub tree.
 * links to same person in other trees
-* parents (link, name, anc/desc indicator)
+* parents (link, name, anc/desc indicator, relation (adopted))
 * NAME
 * events (each event has:)
   * footnotes (link to citation)
@@ -36,7 +36,7 @@ so we can redirect to the non-stub tree.
   * partner (link, name)
   * events (each event has:)
     * footnotes (link to citation)
-  * children (birth, link, name, anc/desc indicator)
+  * children (link, name, anc/desc indicator, relation (adopted), birthdate)
 * citations
 
 

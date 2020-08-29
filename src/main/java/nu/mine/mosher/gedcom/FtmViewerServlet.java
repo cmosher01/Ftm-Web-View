@@ -2,6 +2,8 @@ package nu.mine.mosher.gedcom;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
 import org.slf4j.*;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -13,7 +15,8 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
-import java.net.URL;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.*;
@@ -32,7 +35,9 @@ public class FtmViewerServlet extends HttpServlet {
 
     private final SqlSessionFactory factory;
 
-    public FtmViewerServlet() {
+    public FtmViewerServlet() throws ClassNotFoundException {
+        Class.forName("org.sqlite.JDBC");
+
         final SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
         final Configuration config = new Configuration();
         addMapsTo(config);
@@ -41,11 +46,6 @@ public class FtmViewerServlet extends HttpServlet {
 
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException {
-        try {
-            Class.forName("org.sqlite.JDBC");
-        } catch (final Throwable e) {
-            throw new ServletException(e);
-        }
         try {
             LOG.trace("GET {}", req.getRequestURI());
             tryGet(req, resp);
@@ -74,86 +74,59 @@ public class FtmViewerServlet extends HttpServlet {
             if (uuidPerson.isPresent()) {
                 LOG.debug("person_uuid: {}", uuidPerson.get());
             } else {
-                LOG.debug("no 'person_uuid' query parameter found");
+                LOG.debug("no valid 'person_uuid' query parameter found");
             }
 
             final Optional<String> nameTree = getRequestedTree(req);
+            final Optional<IndexedDatabase> indexedDatabase;
             if (nameTree.isPresent()) {
                 LOG.debug("tree: {}", nameTree.get());
+                indexedDatabase = findTree(nameTree.get());
+                if (indexedDatabase.isPresent()) {
+                    LOG.debug("tree found: {}", indexedDatabase.get().file());
+                } else {
+                    LOG.warn("tree not found: {}", nameTree.get());
+                }
             } else {
-                LOG.debug("no 'tree' query parameter found");
+                LOG.debug("no valid 'tree' query parameter found");
+                indexedDatabase = Optional.empty();
             }
 
+
+
             if (nameTree.isPresent() && uuidPerson.isPresent()) {
-                /*
-                    if tree found
-                        if person in tree
-                            show person page
-                        else
-                            search for person in all trees
-                            if found
-                                redirect tree/person
-                            else
-                                redirect original tree index
-                            end if
-                        end if
-                    else
-                        search for person in all trees
-                        if found
-                            redirect tree/person
-                        else
-                            404
-                        end if
-                    end if
-                */
-                final Optional<IndexedDatabase> idb = findTree(nameTree.get());
-                if (idb.isPresent()) {
-                    final Optional<IndexedPerson> ipr = findPersonInTree(nameTree.get(), uuidPerson.get());
-                    if (ipr.isPresent()) {
-                        dom = Optional.of(pagePerson(idb.get(), ipr.get()));
+                if (indexedDatabase.isPresent()) {
+                    final Optional<IndexedPerson> indexedPerson = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
+                    if (indexedPerson.isPresent()) {
+                        dom = Optional.of(pagePerson(indexedDatabase.get(), indexedPerson.get()));
                     } else {
-                        final Optional<IndexedDatabase> idbOther = findPersonInAnyTree(uuidPerson.get());
-                        final String loc;
-                        if (idbOther.isPresent()) {
-                            loc = "?tree=" + idbOther.get().file().getName() + "&person_uuid=" + uuidPerson.get();
-                            resp.setHeader("Location", loc);
+                        final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+                        if (indexedDatabaseOther.isPresent()) {
+                            redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), resp);
                         } else {
-                            loc = "?tree=" + idb.get().file().getName();
-                            resp.setHeader("Location", loc);
+                            redirectToTree(indexedDatabase.get(), resp);
                         }
-                        LOG.info("redirecting to: {}", loc);
-                        resp.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
                     }
                 } else {
-                    final Optional<IndexedDatabase> idbOther = findPersonInAnyTree(uuidPerson.get());
-                    if (idbOther.isPresent()) {
-                        final String loc = "?tree=" + idbOther.get().file().getName() + "&person_uuid=" + uuidPerson.get();
-                        resp.setHeader("Location", loc);
-                        LOG.info("redirecting to: {}", loc);
-                        resp.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
+                    final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+                    if (indexedDatabaseOther.isPresent()) {
+                        redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), resp);
                     } else {
                         LOG.info("person not currently found in any tree");
                         resp.sendError(HttpServletResponse.SC_NOT_FOUND);
                     }
                 }
             } else if (nameTree.isPresent()) {
-                // if tree exists, show page with index of its people, else 404
-                final Optional<IndexedDatabase> idb = findTree(nameTree.get());
-                if (idb.isPresent()) {
-                    dom = Optional.of(pageIndexPeople(idb.get()));
+                if (indexedDatabase.isPresent()) {
+                    dom = Optional.of(pageIndexPeople(indexedDatabase.get()));
                 } else {
                     LOG.info("tree does not currently exist");
                     resp.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
             } else if (uuidPerson.isPresent()) {
-                // find tree with person in it (most probable non-stub)
-                // if found redirect tree/person, else 404
-                final Optional<IndexedDatabase> idbOther = findPersonInAnyTree(uuidPerson.get());
-                if (idbOther.isPresent()) {
-                    final String loc = "?tree=" + idbOther.get().file().getName() + "&person_uuid=" + uuidPerson.get();
-                    resp.setHeader("Location", loc);
-                    LOG.info("redirecting to: {}", loc);
-                    resp.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
+                final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+                if (indexedDatabaseOther.isPresent()) {
+                    redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), resp);
                 } else {
                     LOG.info("person not currently found in any tree");
                     resp.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -179,16 +152,33 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
+    private void redirectToTree(final IndexedDatabase idb, final HttpServletResponse response) {
+        final String location = "?"+URLEncodedUtils.format(
+            List.of(
+                new BasicNameValuePair("tree", idb.file().getName())),
+            StandardCharsets.UTF_8);
+        response.setHeader("Location", location);
+        LOG.info("redirecting to: {}", location);
+        response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
+    }
 
 
+    private static void redirectToTreePerson(final IndexedDatabase idb, final UUID uuidPerson, final HttpServletResponse response) {
+        final String location = "?"+URLEncodedUtils.format(
+            List.of(
+                new BasicNameValuePair("tree", idb.file().getName()),
+                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
+            StandardCharsets.UTF_8);
+        response.setHeader("Location", location);
+        LOG.info("redirecting to: {}", location);
+        response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
+    }
 
-
-
-    private static Optional<IndexedDatabase> findPersonInAnyTree(UUID uuid) {
+    private static Optional<IndexedDatabase> findPersonInAnyTree(final UUID uuid) {
         return Optional.empty();
     }
 
-    private static Optional<IndexedPerson> findPersonInTree(String s, UUID uuid) {
+    private static Optional<IndexedPerson> findPersonInTree(final IndexedDatabase idb, final UUID uuid) {
         return Optional.empty();
     }
 
