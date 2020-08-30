@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.ParentsMap">
-    <resultMap id="parent_result" type="nu.mine.mosher.gedcom.IndexedPerson" autoMapping="false">
+    <resultMap id="parent_result" type="nu.mine.mosher.gedcom.PersonParent" autoMapping="false">
         <constructor>
-            <idArg column="id" javaType="Object"/>
+            <idArg column="id" javaType="java.util.UUID"/>
             <arg column="name" javaType="String"/>
+            <arg column="nature" javaType="_int"/>
         </constructor>
     </resultMap>
 
@@ -24,11 +25,9 @@
         SELECT
             Child.PersonGUID as id,
             Child.FullNameReversed as nameWithSlashes,
-            Person.PersonGUID as parent_id,
-            Person.FullNameReversed as parent_name
-            --Person.ID AS id,
-            --Person.FullNameReversed AS name,
-            --ChildRelationship.Nature1 AS nature, -- note: nature 1
+            Person.PersonGUID as parent_id, -- TODO get REFN if available
+            Person.FullNameReversed as parent_name,
+            ChildRelationship.Nature1 AS parent_nature -- note: nature 1
             --Relationship.Private AS prvt_parent,
             --ChildRelationship.Private AS prvt_child,
             --ChildRelationship.Preferred AS pref
@@ -45,10 +44,8 @@
             Child.PersonGUID as id,
             Child.FullNameReversed as nameWithSlashes,
             Person.PersonGUID as parent_id,
-            Person.FullNameReversed as parent_name
-            --Person.ID,
-            --Person.FullNameReversed,
-            --ChildRelationship.Nature2, -- note: nature 2
+            Person.FullNameReversed as parent_name,
+            ChildRelationship.Nature2 as parent_nature -- note: nature 2
             --Relationship.Private,
             --ChildRelationship.Private,
             --ChildRelationship.Preferred

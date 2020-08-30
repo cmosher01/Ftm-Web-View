@@ -22,9 +22,9 @@ public class DatabaseUtil {
         return bb.array();
     }
 
-    public static byte[] permute(Object s) {
-        return permute((byte[])s);
-    }
+//    public static byte[] permute(Object s) {
+//        return permute((byte[])s);
+//    }
 
     public static byte[] permute(byte[] s) {
         final byte[] d = new byte[16];

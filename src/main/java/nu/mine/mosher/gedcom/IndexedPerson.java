@@ -2,19 +2,10 @@ package nu.mine.mosher.gedcom;
 
 import java.util.*;
 
-import static nu.mine.mosher.gedcom.DatabaseUtil.*;
 
-
-public record IndexedPerson(Object id, String name) implements Comparable<IndexedPerson> {
-    public IndexedPerson {
-        if (!(Objects.requireNonNull(id) instanceof byte[])) {
-            throw new IllegalArgumentException("id of unexpected type: "+id.getClass().getCanonicalName());
-        }
-        Objects.requireNonNull(name);
-    }
-
+public record IndexedPerson(UUID id, Refn refn, String name) implements Comparable<IndexedPerson> {
     public static IndexedPerson from(final UUID uuidPerson) {
-        return new IndexedPerson(permute(bytesOf(uuidPerson)), "");
+        return new IndexedPerson(uuidPerson, null, null);
     }
 
     @Override
@@ -23,14 +14,10 @@ public record IndexedPerson(Object id, String name) implements Comparable<Indexe
         return this.name().compareToIgnoreCase(that.name());
     }
 
-    public UUID uuid() {
-        return uuidOf(permute(id()));
-    }
-
-    public byte[] getId() {
-        final byte[] s = (byte[])id();
-        final byte[] d = new byte[16];
-        System.arraycopy(s, 0, d, 0, 16);
-        return d;
+    public UUID preferRefn() {
+        if (Objects.nonNull(refn())) {
+            return refn().uuid();
+        }
+        return id();
     }
 }

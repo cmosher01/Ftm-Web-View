@@ -48,7 +48,7 @@ public class ContextInitializer implements ServletContextListener {
     private void initMybatis(final ServletContext context) {
         final SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
         final Configuration config = new Configuration();
-        addMapsTo(config);
+        initMybatisConfig(config);
         context.setAttribute(SQL_SESSION_FACTORY, builder.build(config));
     }
 
@@ -69,9 +69,15 @@ public class ContextInitializer implements ServletContextListener {
         // TODO log anything from this??? driverJdbc.getPropertyInfo();
     }
 
-    private static void addMapsTo(final Configuration config) {
+    private static void initMybatisConfig(final Configuration config) {
+        config.getTypeHandlerRegistry().register(FtmGuidTypeHandler.class);
+        config.getTypeHandlerRegistry().register(RefnTypeHandler.class);
+
         config.addMapper(PersonIndexMap.class);
         config.addMapper(PersonMap.class);
         config.addMapper(ParentsMap.class);
+        config.addMapper(PartnershipsMap.class);
+        config.addMapper(RefnMap.class);
+        config.addMapper(RefnReverseMap.class);
     }
 }

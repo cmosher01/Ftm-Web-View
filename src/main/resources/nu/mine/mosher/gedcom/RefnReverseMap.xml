@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.gedcom.RefnReverseMap">
+    <select id="select" resultType="String" parameterType="java.util.UUID">
+        SELECT
+            Text
+        FROM
+            Person INNER JOIN
+            Fact ON (Fact.LinkTableID = 5 AND Fact.LinkID = Person.ID) INNER JOIN
+            FactType ON (FactType.ID = Fact.FactTypeID AND (Tag LIKE '%UID%' OR Tag LIKE '%REFN%'))
+        WHERE
+            Person.PersonGUID = #{id}
+    </select>
+</mapper>

@@ -4,9 +4,17 @@
     <resultMap id="result" type="nu.mine.mosher.gedcom.IndexedPerson"/>
     <select id="select" resultMap="result">
         SELECT
-            PersonGuid as id,
-            FullNameReversed as name
+            Person.PersonGuid as id,
+            Fact.Text as refn,
+            Person.FullNameReversed as name
         FROM
-            Person
+            Person LEFT OUTER JOIN
+            Fact ON (
+                Fact.LinkTableID = 5 AND
+                Fact.LinkID = Person.ID AND
+                Fact.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Tag LIKE '%UID%' OR FactType.Tag LIKE '%REFN%')
+            )
+        ORDER BY
+            id
     </select>
 </mapper>
