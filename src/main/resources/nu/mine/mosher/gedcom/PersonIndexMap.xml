@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.PersonIndexMap">
-    <select id="select" resultType="nu.mine.mosher.gedcom.IndexedPerson">
+    <resultMap id="result" type="nu.mine.mosher.gedcom.IndexedPerson"/>
+    <select id="select" resultMap="result">
         SELECT
-            ID as id,
-            FullNameReversed as nameSort
+            PersonGuid as id,
+            FullNameReversed as name
         FROM
             Person
     </select>

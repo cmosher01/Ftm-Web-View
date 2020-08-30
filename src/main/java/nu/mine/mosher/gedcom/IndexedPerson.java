@@ -1,15 +1,36 @@
 package nu.mine.mosher.gedcom;
 
+import java.util.*;
+
+import static nu.mine.mosher.gedcom.DatabaseUtil.*;
 
 
-import org.jetbrains.annotations.NotNull;
+public record IndexedPerson(Object id, String name) implements Comparable<IndexedPerson> {
+    public IndexedPerson {
+        if (!(Objects.requireNonNull(id) instanceof byte[])) {
+            throw new IllegalArgumentException("id of unexpected type: "+id.getClass().getCanonicalName());
+        }
+        Objects.requireNonNull(name);
+    }
 
+    public static IndexedPerson from(final UUID uuidPerson) {
+        return new IndexedPerson(permute(bytesOf(uuidPerson)), "");
+    }
 
-
-public record IndexedPerson(int id, String nameSort) implements Comparable<IndexedPerson> {
     @Override
     // not consistent with equals
-    public int compareTo(@NotNull IndexedPerson that) {
-        return this.nameSort().compareToIgnoreCase(that.nameSort());
+    public int compareTo(final IndexedPerson that) {
+        return this.name().compareToIgnoreCase(that.name());
+    }
+
+    public UUID uuid() {
+        return uuidOf(permute(id()));
+    }
+
+    public byte[] getId() {
+        final byte[] s = (byte[])id();
+        final byte[] d = new byte[16];
+        System.arraycopy(s, 0, d, 0, 16);
+        return d;
     }
 }

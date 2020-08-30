@@ -71,5 +71,7 @@ public class ContextInitializer implements ServletContextListener {
 
     private static void addMapsTo(final Configuration config) {
         config.addMapper(PersonIndexMap.class);
+        config.addMapper(PersonMap.class);
+        config.addMapper(ParentsMap.class);
     }
 }

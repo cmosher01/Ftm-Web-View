@@ -5,6 +5,7 @@ import jakarta.servlet.http.*;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.*;
 import org.w3c.dom.*;
 
@@ -95,9 +96,9 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                final Optional<IndexedPerson> indexedPerson = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
-                if (indexedPerson.isPresent()) {
-                    dom = Optional.of(pagePerson(indexedDatabase.get(), indexedPerson.get()));
+                final boolean existsPerson = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
+                if (existsPerson) {
+                    dom = Optional.of(pagePerson(indexedDatabase.get(), uuidPerson.get()));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
                     if (indexedDatabaseOther.isPresent()) {
@@ -137,10 +138,7 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private static void redirectToTree(final IndexedDatabase indexedDatabase, final HttpServletResponse response) {
-        final String location = "?"+URLEncodedUtils.format(
-            List.of(
-                new BasicNameValuePair("tree", indexedDatabase.file().getName())),
-            StandardCharsets.UTF_8);
+        final String location = urlQueryTree(indexedDatabase);
         response.setHeader("Location", location);
         LOG.info("redirecting to: {}", location);
         response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
@@ -148,22 +146,46 @@ public class FtmViewerServlet extends HttpServlet {
 
 
     private static void redirectToTreePerson(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final HttpServletResponse response) {
-        final String location = "?"+URLEncodedUtils.format(
-            List.of(
-                new BasicNameValuePair("tree", indexedDatabase.file().getName()),
-                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
-            StandardCharsets.UTF_8);
+        final String location = urlQueryTreePerson(indexedDatabase, uuidPerson);
         response.setHeader("Location", location);
         LOG.info("redirecting to: {}", location);
         response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
     }
 
+    private static String urlQueryTreePerson(IndexedDatabase indexedDatabase, UUID uuidPerson) {
+        return "?"+URLEncodedUtils.format(
+            List.of(
+                new BasicNameValuePair("tree", indexedDatabase.file().getName()),
+                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
+            StandardCharsets.UTF_8);
+    }
+
+    private static String urlQueryTree(IndexedDatabase indexedDatabase) {
+        return "?"+URLEncodedUtils.format(
+            List.of(
+                new BasicNameValuePair("tree", indexedDatabase.file().getName())),
+            StandardCharsets.UTF_8);
+    }
+
+//    private static String urlQueryPerson(UUID uuidPerson) {
+//        return "?"+URLEncodedUtils.format(
+//            List.of(
+//                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
+//            StandardCharsets.UTF_8);
+//    }
+
     private static Optional<IndexedDatabase> findPersonInAnyTree(final UUID uuidPerson) {
         return Optional.empty();
     }
 
-    private static Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final UUID uuidPerson) {
-        return Optional.empty();
+    private boolean findPersonInTree(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
+        int c = 0;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final PersonMap map = session.getMapper(PersonMap.class);
+            c = map.count(IndexedPerson.from(uuidPerson));
+        }
+
+        return 0 < c;
     }
 
     private static Optional<IndexedDatabase> findTree(final String nameTree) {
@@ -210,7 +232,7 @@ public class FtmViewerServlet extends HttpServlet {
             LOG.debug("    {}", iDb.file());
             final Element li = e(ul, "li");
             final Element a = e(li, "a");
-            a.setAttribute("href", "?tree="+iDb.file().getName());
+            a.setAttribute("href", urlQueryTree(iDb));
             a.setTextContent("{"+iDb.file().getName()+"}");
         }
 
@@ -219,14 +241,10 @@ public class FtmViewerServlet extends HttpServlet {
 
     private Document pageIndexPeople(final IndexedDatabase indexedDatabase) throws ParserConfigurationException, SQLException {
         List<IndexedPerson> list = Collections.emptyList();
-        try (final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file())) {
-            LOG.debug("database connection: auto-commit={}, transaction-isolation={}", conn.getAutoCommit(), conn.getTransactionIsolation());
-            final SqlSessionFactory sqlSessionFactory = (SqlSessionFactory)getServletContext().getAttribute(SQL_SESSION_FACTORY);
-            try (final SqlSession session = sqlSessionFactory.openSession(conn)) {
-                final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
-                list = map.select();
-                list.forEach(p -> LOG.debug("person: {}", p));
-            }
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
+            list = map.select();
+            list.sort(Comparator.naturalOrder());
         }
 
 
@@ -245,28 +263,64 @@ public class FtmViewerServlet extends HttpServlet {
         a.setTextContent("{home}");
 
         final Element ul = e(body, "ul");
-        for (final IndexedPerson iPerson : list) {
+        for (final IndexedPerson indexedPerson : list) {
             final Element li = e(ul, "li");
             final Element ap = e(li, "a");
-            ap.setAttribute("href", "?person_uuid=TODO");
-            ap.setTextContent(iPerson.nameSort());
+            ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson.uuid()));
+            ap.setTextContent(indexedPerson.name());
         }
 
         return dom;
     }
 
-    private static Document pagePerson(IndexedDatabase indexedDatabase, IndexedPerson indexedPerson) throws ParserConfigurationException {
+    private SqlSession openSessionFor(final Connection connection) {
+        final SqlSessionFactory sqlSessionFactory = (SqlSessionFactory)getServletContext().getAttribute(SQL_SESSION_FACTORY);
+        return sqlSessionFactory.openSession(connection);
+    }
+
+    private Document pagePerson(IndexedDatabase indexedDatabase, UUID uuidPerson) throws ParserConfigurationException, SQLException {
+        final FullPerson person;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final ParentsMap map = session.getMapper(ParentsMap.class);
+            person = map.select(IndexedPerson.from(uuidPerson));
+        }
+
         final Document dom = XmlUtils.empty();
 
         final Element html = e(dom, "html");
         final Element head = e(html, "head");
         final Element body = e(html, "body");
 
+        final Element section = e(body, "section");
+        section.setAttribute("class", "parents");
+        e(section, "hr");
+        final Element table = e(section, "table");
+        final Element tbody = e(table, "tbody");
+
+        final List<IndexedPerson> parents = person.parents;
+        LOG.debug("parents selected: {}", parents);
+        for (final IndexedPerson parent : parents) {
+            final Element tr = e(tbody, "tr");
+            final Element td = e(tr, "td");
+            final Element a = e(td, "a");
+            a.setAttribute("href", urlQueryTreePerson(indexedDatabase, parent.uuid()));
+            a.setTextContent(parent.name());
+        }
+
+        final Element header = e(body, "header");
+        final Element h1 = e(header, "h1");
+        h1.setAttribute("class", "personName");
+        h1.setTextContent(person.toString());
         return dom;
     }
 
 
 
+    private Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
+        final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file());
+        LOG.debug("Opened JDBC Connection [{}], auto-commit={}, transaction-isolation={}", conn, conn.getAutoCommit(), conn.getTransactionIsolation());
+        return conn;
+    }
 
 
 

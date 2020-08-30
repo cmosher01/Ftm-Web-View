@@ -151,7 +151,7 @@ public class FtmWebView {
         try (final Connection db = DriverManager.getConnection("jdbc:sqlite:"+idb.file())) {
             try (final PreparedStatement statement = db.prepareStatement(getRes("sql/notes.sql"))) {
                 statement.setInt(1, FtmLinkTableID.Person.id());
-                statement.setInt(2, person.id());
+//                statement.setInt(2, person.id());
                 try (final ResultSet rs = statement.executeQuery()) {
                     while (rs.next()) {
                         notes.put(rs.getInt("id"), ResultSetConverter.buildNote(rs));
@@ -192,7 +192,7 @@ public class FtmWebView {
             final Statement statement = db.createStatement();
             final ResultSet rs = statement.executeQuery("SELECT ID, FullNameReversed FROM Person")) {
             while (rs.next()) {
-                addTo.add(new IndexedPerson(rs.getInt("ID"), rs.getString("FullNameReversed")));
+//                addTo.add(new IndexedPerson(rs.getInt("ID"), rs.getString("FullNameReversed")));
             }
         }
     }
@@ -214,7 +214,7 @@ public class FtmWebView {
     private static void loadFactNotes(Connection db, IndexedPerson person, Map<Integer, Event> events, Map<Integer, Note> notes) throws SQLException, IOException {
         try (final PreparedStatement statement = db.prepareStatement(getRes("sql/fact_notes.sql"))) {
             statement.setInt(1, FtmLinkTableID.Person.id());
-            statement.setInt(2, person.id());
+//            statement.setInt(2, person.id());
             try (final ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     final int id = rs.getInt("id_note");
@@ -234,7 +234,7 @@ public class FtmWebView {
     private static void loadFacts(Connection db, IndexedPerson person, Map<Integer, Event> events) throws SQLException, IOException {
         try (final PreparedStatement statement = db.prepareStatement(getRes("sql/facts.sql"))) {
             statement.setInt(1, FtmLinkTableID.Person.id());
-            statement.setInt(2, person.id());
+//            statement.setInt(2, person.id());
             try (final ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     events.put(rs.getInt("id"), ResultSetConverter.buildEvent(rs));
@@ -246,7 +246,7 @@ public class FtmWebView {
     private static void loadFactSources(Connection db, IndexedPerson person, Map<Integer, Event> events, Map<Integer, Citation> citations) throws SQLException, IOException {
         try (final PreparedStatement statement = db.prepareStatement(getRes("sql/fact_sources.sql"))) {
             statement.setInt(1, FtmLinkTableID.Person.id());
-            statement.setInt(2, person.id());
+//            statement.setInt(2, person.id());
             try (final ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     final int id = rs.getInt("id_citation");
