@@ -19,9 +19,8 @@
 ### Person
     /{tree}/persons/{uuid}/
     /*?tree={tree.ftm}&person_uuid={uuid}
-    /persons/{uuid}/
     /*?person_uuid={uuid}
-The first link is canonical, the other two find person and redirect to random tree.
+The first links are canonical, the last finds person in random tree.
 If canonical link: person or tree not found, then try searching in all trees.
 TODO: add some artificial intelligence to determine which entries are stubs,
 so we can redirect to the non-stub tree.

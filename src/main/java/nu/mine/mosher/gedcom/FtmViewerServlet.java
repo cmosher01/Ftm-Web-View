@@ -24,17 +24,18 @@ public class FtmViewerServlet extends HttpServlet {
 
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
+        LOG.trace("REQUEST HANDLING: BEGIN {}", "=".repeat(50));
         try {
             LOG.trace("GET {}", request.getRequestURI());
+            logRequestInfo(request);
             tryGet(request, response);
         } catch (final Throwable e) {
             LOG.error("uncaught exception in servlet", e);
         }
+        LOG.trace("REQUEST HANDLING: END   {}", "=".repeat(50));
     }
 
     private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException {
-        logRequestInfo(request);
-
         Optional<Document> dom = Optional.empty();
 
         if (request.getServletPath().equals("/")) {
@@ -59,10 +60,37 @@ public class FtmViewerServlet extends HttpServlet {
         LOG.debug("requestURI={}", request.getRequestURI());
         LOG.debug("pathInfo={}", request.getPathInfo());
         LOG.debug("servletPath={}", request.getServletPath());
+        LOG.debug("queryString={}", request.getQueryString());
+        LOG.debug("remoteUser={}", request.getRemoteUser());
+
         final Enumeration<String> e = request.getHeaderNames();
         while (e.hasMoreElements()) {
             final String header = e.nextElement();
             LOG.debug("header: {}={}", header, request.getHeader(header));
+        }
+        final Cookie[] cookies = request.getCookies();
+        if (Objects.isNull(cookies) || cookies.length <= 0) {
+            LOG.debug("The request had no cookies attached.");
+        } else {
+            Arrays.stream(cookies).forEach(c -> LOG.debug("cookie: {}: {}={}", c.getPath(), c.getName(), c.getValue()));
+        }
+        final Map<String, String[]> parameters = request.getParameterMap();
+        if (Objects.isNull(parameters) || parameters.isEmpty()) {
+            LOG.debug("The request had no query parameters.");
+        } else {
+            parameters.entrySet().forEach(FtmViewerServlet::logQueryParams);
+        }
+    }
+
+    private static void logQueryParams(Map.Entry<String, String[]> entry) {
+        final String name = entry.getKey();
+        final String[] values = entry.getValue();
+        if (Objects.isNull(values)) {
+            LOG.debug("query parameter: {}={}", name, "<<NULL>>");
+        } else if (values.length <= 0) {
+            LOG.debug("query parameter: {}={}", name, "<<EMPTY>>");
+        } else {
+            Arrays.stream(values).forEach(value -> LOG.debug("query parameter: {}={}", name, value));
         }
     }
 
