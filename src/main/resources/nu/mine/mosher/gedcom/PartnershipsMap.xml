@@ -6,6 +6,7 @@
             <idArg column="id" javaType="_int"/>
             <idArg column="person_id" javaType="java.util.UUID"/>
             <arg column="person_name" javaType="String"/>
+            <arg column="nature" javaType="_int"/>
         </constructor>
     </resultMap>
 
@@ -22,10 +23,11 @@
         )
 
         SELECT
-            Self.PersonGUID as id,
+            Self.PersonGUID AS id,
             Relationship.ID AS partnership_id,
-            Person.PersonGUID AS partnership_person_id, -- TODO get REFN if available
-            Person.FullNameReversed AS partnership_person_name
+            Person.PersonGUID AS partnership_person_id,
+            Person.FullNameReversed AS partnership_person_name,
+            Relationship.Nature AS partnership_nature
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -40,10 +42,11 @@
         UNION ALL
 
         SELECT
-            Self.PersonGUID as id,
+            Self.PersonGUID AS id,
             Relationship.ID AS partnership_id,
             Person.PersonGUID AS partnership_person_id,
-            Person.FullNameReversed AS partnership_person_name
+            Person.FullNameReversed AS partnership_person_name,
+            Relationship.Nature AS partnership_nature
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->

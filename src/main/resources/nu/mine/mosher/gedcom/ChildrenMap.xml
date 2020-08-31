@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.gedcom.ChildrenMap">
+    <resultMap id="result" type="nu.mine.mosher.gedcom.PersonChild" autoMapping="false">
+        <constructor>
+            <idArg column="id" javaType="java.util.UUID"/>
+            <arg column="name" javaType="String"/>
+            <arg column="nature" javaType="_int"/>
+        </constructor>
+    </resultMap>
+
+    <select id="select" resultMap="result" parameterType="_int" resultOrdered="true">
+        WITH ParamRelationship AS (
+            SELECT #{id} AS ID
+        )
+
+        SELECT
+            Person.PersonGUID AS id,
+            Person.FullNameReversed AS name,
+            99 AS nature -- TODO ???
+        FROM
+            ParamRelationship LEFT OUTER JOIN
+            ChildRelationship ON (ChildRelationship.RelationshipID = ParamRelationship.ID) LEFT OUTER JOIN
+            Person ON (Person.ID = ChildRelationship.PersonID)
+        WHERE
+            Person.ID IS NOT NULL
+        ORDER BY
+            Person.BirthDate
+    </select>
+</mapper>

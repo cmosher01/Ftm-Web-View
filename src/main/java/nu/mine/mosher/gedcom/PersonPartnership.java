@@ -3,5 +3,5 @@ package nu.mine.mosher.gedcom;
 import java.util.UUID;
 
 
-public record PersonPartnership(int id, UUID idPerson, String name) {
+public record PersonPartnership(int id, UUID idPerson, String name, int nature) {
 }

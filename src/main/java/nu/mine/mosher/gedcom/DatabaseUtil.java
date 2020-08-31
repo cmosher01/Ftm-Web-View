@@ -1,9 +1,14 @@
 package nu.mine.mosher.gedcom;
 
+import org.slf4j.*;
+
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class DatabaseUtil {
+    private static final Logger LOG =  LoggerFactory.getLogger(DatabaseUtil.class);
+
     public static UUID uuidOf(final byte[] rb) {
         final ByteBuffer bb = ByteBuffer.wrap(rb);
 
@@ -49,6 +54,8 @@ public class DatabaseUtil {
         d[0xd] = s[0xd];
         d[0xe] = s[0xe];
         d[0xf] = s[0xf];
+
+        LOG.trace("permuted UUID:  {}(byte[]) = [{}]", d.toString(), String.format("%032x", new BigInteger(1, d)));
 
         return d;
     }
