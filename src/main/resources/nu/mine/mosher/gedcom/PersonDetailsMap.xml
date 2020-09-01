@@ -10,10 +10,11 @@
 
     <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
         SELECT
-            PersonGUID as id,
-            Title as nameWithSlashes
+            PersonGUID AS id,
+            Fact.Text AS nameWithSlashes
         FROM
-            Person
+            Person LEFT OUTER JOIN
+            Fact ON (Fact.ID = Person.NameFactID)
         WHERE
             PersonGUID = #{id}
     </select>

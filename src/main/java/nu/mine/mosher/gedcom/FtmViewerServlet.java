@@ -84,7 +84,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private static void logQueryParams(Map.Entry<String, String[]> entry) {
+    private static void logQueryParams(final Map.Entry<String, String[]> entry) {
         final String name = entry.getKey();
         final String[] values = entry.getValue();
         if (Objects.isNull(values)) {
@@ -125,21 +125,21 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
+                final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(indexedDatabase.get(), optFiltered.get().id()));
+                    dom = Optional.of(pagePerson(indexedDatabase.get(), optFiltered.get()));
                 } else {
-                    final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+                    final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                     if (indexedDatabaseOther.isPresent()) {
-                        redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), response);
+                        redirectToTreePerson(indexedDatabaseOther.get(), IndexedPerson.from(uuidPerson.get()), response);
                     } else {
                         redirectToTree(indexedDatabase.get(), response);
                     }
                 }
             } else {
-                final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+                final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                 if (indexedDatabaseOther.isPresent()) {
-                    redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), response);
+                    redirectToTreePerson(indexedDatabaseOther.get(), IndexedPerson.from(uuidPerson.get()), response);
                 } else {
                     LOG.info("person not currently found in any tree");
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -153,9 +153,9 @@ public class FtmViewerServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } else if (uuidPerson.isPresent()) {
-            final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
+            final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
             if (indexedDatabaseOther.isPresent()) {
-                redirectToTreePerson(indexedDatabaseOther.get(), uuidPerson.get(), response);
+                redirectToTreePerson(indexedDatabaseOther.get(), IndexedPerson.from(uuidPerson.get()), response);
             } else {
                 LOG.info("person not currently found in any tree");
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -175,22 +175,22 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
 
-    private static void redirectToTreePerson(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final HttpServletResponse response) {
-        final String location = urlQueryTreePerson(indexedDatabase, uuidPerson);
+    private static void redirectToTreePerson(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final HttpServletResponse response) {
+        final String location = urlQueryTreePerson(indexedDatabase, indexedPerson);
         response.setHeader("Location", location);
         LOG.info("redirecting to: {}", location);
         response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
     }
 
-    private static String urlQueryTreePerson(IndexedDatabase indexedDatabase, UUID uuidPerson) {
+    private static String urlQueryTreePerson(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) {
         return "?"+URLEncodedUtils.format(
             List.of(
                 new BasicNameValuePair("tree", indexedDatabase.file().getName()),
-                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
+                new BasicNameValuePair("person_uuid", indexedPerson.preferRefn().toString())),
             StandardCharsets.UTF_8);
     }
 
-    private static String urlQueryTree(IndexedDatabase indexedDatabase) {
+    private static String urlQueryTree(final IndexedDatabase indexedDatabase) {
         return "?"+URLEncodedUtils.format(
             List.of(
                 new BasicNameValuePair("tree", indexedDatabase.file().getName())),
@@ -204,23 +204,27 @@ public class FtmViewerServlet extends HttpServlet {
 //            StandardCharsets.UTF_8);
 //    }
 
-    private static Optional<IndexedDatabase> findPersonInAnyTree(final UUID uuidPerson) {
-        // TODO
+    private Optional<IndexedDatabase> findPersonInAnyTree(final IndexedPerson indexedPerson) throws SQLException {
+        final List<IndexedDatabase> dbs = loadDatabaseIndex();
+        for (final IndexedDatabase db : dbs) {
+            final Optional<IndexedPerson> optPerson = findPersonInTree(db, indexedPerson);
+            if (optPerson.isPresent()) {
+                return Optional.of(db);
+            }
+        }
         return Optional.empty();
     }
 
-    private Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
-        final IndexedPerson query = IndexedPerson.from(uuidPerson);
-
+    private Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
         final Optional<IndexedPerson> optFiltered;
 
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonMap map = session.getMapper(PersonMap.class);
-            optFiltered = Optional.ofNullable(map.select(query));
+            optFiltered = Optional.ofNullable(map.select(indexedPerson));
             if (optFiltered.isPresent()) {
                 LOG.debug("Found matching Person: {}", optFiltered.get());
             } else {
-                LOG.info("Did not find Person matching {}", query);
+                LOG.info("Did not find Person matching {}", indexedPerson);
             }
         }
 
@@ -270,15 +274,14 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private static Document pageIndexDatabases() throws ParserConfigurationException {
+    private Document pageIndexDatabases() throws ParserConfigurationException, SQLException {
         final Document dom = XmlUtils.empty();
 
         final Element html = e(dom, "html");
         final Element head = e(html, "head");
         final Element body = e(html, "body");
-        final Element a = e(body, "a");
-        a.setAttribute("href", "./");
-        a.setTextContent("{home}");
+
+        fragNav(null, null, body);
 
         final Element h1 = e(body, "h3");
         h1.setTextContent("Browse a genealogy database");
@@ -291,6 +294,8 @@ public class FtmViewerServlet extends HttpServlet {
             link.setAttribute("href", urlQueryTree(iDb));
             link.setTextContent("{"+iDb.file().getName()+"}");
         }
+
+        fragFooter(body);
 
         return dom;
     }
@@ -313,13 +318,7 @@ public class FtmViewerServlet extends HttpServlet {
         title.setTextContent(indexedDatabase.file().getName());
         final Element body = e(html, "body");
 
-        final Element a = e(body, "a");
-        a.setAttribute("href", "./");
-        a.setTextContent("{home}");
-
-        final Element a2 = e(body, "a");
-        a2.setAttribute("href", urlQueryTree(indexedDatabase));
-        a2.setTextContent("{"+indexedDatabase.file().getName()+"}");
+        fragNav(indexedDatabase, null, body);
 
         final Element h1 = e(body, "h3");
         h1.setTextContent(indexedDatabase.file().getName());
@@ -328,11 +327,53 @@ public class FtmViewerServlet extends HttpServlet {
         for (final IndexedPerson indexedPerson : list) {
             final Element li = e(ul, "li");
             final Element ap = e(li, "a");
-            ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson.preferRefn()));
+            ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
             ap.setTextContent(indexedPerson.name());
         }
 
+        fragFooter(body);
+
         return dom;
+    }
+
+    private void fragNav(final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException {
+        final Element header = e(parent, "header");
+        final Element nav = e(header, "nav");
+        final Element a = e(nav, "a");
+        a.setAttribute("href", "./");
+        a.setTextContent("{home}");
+
+        if (Objects.nonNull(indexedDatabase)) {
+            final Element a2 = e(nav, "a");
+            a2.setAttribute("href", urlQueryTree(indexedDatabase));
+            a2.setTextContent("{" + indexedDatabase.file().getName() + "}");
+        }
+
+        LOG.debug("source database: {}", indexedDatabase);
+        if (Objects.nonNull(indexedPerson)) {
+            final List<IndexedDatabase> dbs = loadDatabaseIndex();
+            boolean labeled = false;
+            for (final IndexedDatabase db : dbs) {
+                if (db.file().getAbsolutePath().equals(indexedDatabase.file().getAbsolutePath())) {
+                    LOG.debug("skipping check in source database: {}",db);
+                } else {
+                    LOG.debug("checking database: {}",db);
+                    final Optional<IndexedPerson> optPerson = findPersonInTree(db, indexedPerson);
+                    if (optPerson.isPresent()) {
+                        LOG.debug("Found person {} in alternate tree {}", optPerson, db);
+                        if (!labeled) {
+                            final Element span = e(nav, "span");
+                            span.setTextContent("see also: ");
+                            labeled = true;
+                        }
+                        final Element a3 = e(nav, "a");
+                        a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
+                        a3.setTextContent("{" + db.file().getName() + "}");
+                    }
+                }
+            }
+
+        }
     }
 
     private SqlSession openSessionFor(final Connection connection) {
@@ -340,8 +381,8 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(IndexedDatabase indexedDatabase, UUID uuidPerson) throws ParserConfigurationException, SQLException {
-        final Person person = loadPersonDetails(indexedDatabase, uuidPerson);
+    private Document pagePerson(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException {
+        final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
 
         final Document dom = XmlUtils.empty();
 
@@ -351,23 +392,17 @@ public class FtmViewerServlet extends HttpServlet {
         title.setTextContent(person.nameWithSlashes());
         final Element body = e(html, "body");
 
-        final Element a = e(body, "a");
-        a.setAttribute("href", "./");
-        a.setTextContent("{home}");
+        fragNav(indexedDatabase, indexedPerson, body);
 
-        final Element a2 = e(body, "a");
-        a2.setAttribute("href", urlQueryTree(indexedDatabase));
-        a2.setTextContent("{"+indexedDatabase.file().getName()+"}");
-
-        fragPersonParents(indexedDatabase, uuidPerson, body);
+        fragPersonParents(indexedDatabase, indexedPerson, body);
 
         // TODO "see also" other databases
 
-        fragName(indexedDatabase, uuidPerson, person, body);
+        fragName(indexedDatabase, indexedPerson, person, body);
 
         // TODO events
 
-        fragPersonPartnerships(indexedDatabase, uuidPerson, body);
+        fragPersonPartnerships(indexedDatabase, indexedPerson, body);
 
         // TODO footnotes
 
@@ -376,7 +411,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private static void fragName(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Person person, final Element body) {
+    private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {
         final Element header = e(body, "header"); {
             e(header, "hr");
 
@@ -384,7 +419,7 @@ public class FtmViewerServlet extends HttpServlet {
 
                 final Element a = e(h1, "a");
                 a.setTextContent(new String(Character.toChars(0x1F517)));
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidPerson));
+                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
                 final Element personName = e(h1, "span");
                 personName.setAttribute("class", "personName");
@@ -403,20 +438,20 @@ public class FtmViewerServlet extends HttpServlet {
         time.setTextContent("Page generated "+sNow);
     }
 
-    private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
+    private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
         final Person person;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonDetailsMap map = session.getMapper(PersonDetailsMap.class);
-            person = map.select(IndexedPerson.from(uuidPerson));
+            person = map.select(indexedPerson);
         }
         return person;
     }
 
-    private void fragPersonParents(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Element body) throws SQLException {
+    private void fragPersonParents(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body) throws SQLException {
         final List<PersonParent> parents;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final ParentsMap map = session.getMapper(ParentsMap.class);
-            parents = filterParents(map.select(IndexedPerson.from(uuidPerson)));
+            parents = filterParents(map.select(indexedPerson));
         }
 
         final Element section = e(body, "section");
@@ -445,7 +480,7 @@ public class FtmViewerServlet extends HttpServlet {
                 nature.setAttribute("class", "nature");
                 nature.setTextContent("(" + parent.nature() + ")");
                 final Element a = e(td, "a");
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
+                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(parent.name());
             }
         }
@@ -473,12 +508,12 @@ public class FtmViewerServlet extends HttpServlet {
         return r;
     }
 
-    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Element body) throws SQLException {
+    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body) throws SQLException {
         final List<PersonPartnership> partnerships;
 
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PartnershipsMap map = session.getMapper(PartnershipsMap.class);
-            partnerships = map.select(IndexedPerson.from(uuidPerson));
+            partnerships = map.select(indexedPerson);
         }
 
         if (Objects.isNull(partnerships) || partnerships.isEmpty()) {
@@ -518,7 +553,7 @@ public class FtmViewerServlet extends HttpServlet {
                     span.setTextContent("[unknown partner]");
                 } else {
                     final Element a = e(td, "a");
-                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
+                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                     a.setTextContent(partnership.name());
                 }
 
@@ -555,7 +590,7 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
                 final Element a = e(td, "a");
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
+                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(child.name());
             }
         }
@@ -563,7 +598,7 @@ public class FtmViewerServlet extends HttpServlet {
 
     private static Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
         final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file());
-        LOG.debug("Opened JDBC Connection [{}], auto-commit={}, transaction-isolation={}", conn, conn.getAutoCommit(), conn.getTransactionIsolation());
+        LOG.debug("Opened JDBC Connection [{}], db={}, auto-commit={}, transaction-isolation={}", conn, indexedDatabase.file(), conn.getAutoCommit(), conn.getTransactionIsolation());
         return conn;
     }
 
