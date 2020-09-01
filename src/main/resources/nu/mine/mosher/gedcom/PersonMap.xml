@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.PersonMap">
-    <select id="count" resultType="int" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
+    <select id="select" resultType="nu.mine.mosher.gedcom.IndexedPerson" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
         SELECT
-            COUNT(*)
+            Person.PersonGuid as id,
+            Fact.Text as refn,
+            Person.FullNameReversed as name
         FROM
-            Person
+            Person LEFT OUTER JOIN
+            Fact ON (
+                Fact.LinkTableID = 5 AND
+                Fact.LinkID = Person.ID AND
+                Fact.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE Tag LIKE '%UID%' OR Tag LIKE '%REFN%'
+                )
+            )
         WHERE
-            PersonGUID = #{id}
+            Person.PersonGUID = #{id} OR
+            Fact.Text = #{refn}
     </select>
 </mapper>

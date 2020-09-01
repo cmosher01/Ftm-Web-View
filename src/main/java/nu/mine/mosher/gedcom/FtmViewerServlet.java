@@ -13,6 +13,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -123,9 +125,9 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                final Optional<UUID> uuidPersonFiltered = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
-                if (uuidPersonFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(indexedDatabase.get(), uuidPersonFiltered.get()));
+                final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), uuidPerson.get());
+                if (optFiltered.isPresent()) {
+                    dom = Optional.of(pagePerson(indexedDatabase.get(), optFiltered.get().id()));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(uuidPerson.get());
                     if (indexedDatabaseOther.isPresent()) {
@@ -203,42 +205,41 @@ public class FtmViewerServlet extends HttpServlet {
 //    }
 
     private static Optional<IndexedDatabase> findPersonInAnyTree(final UUID uuidPerson) {
+        // TODO
         return Optional.empty();
     }
 
-    private Optional<UUID> findPersonInTree(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
-        final int c;
+    private Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
+        final IndexedPerson query = IndexedPerson.from(uuidPerson);
+
+        final Optional<IndexedPerson> optFiltered;
+
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonMap map = session.getMapper(PersonMap.class);
-            c = map.count(IndexedPerson.from(uuidPerson));
-            LOG.debug("PersonGUID={}, count of matching Person rows: {}", uuidPerson, c);
-        }
-        if (0 < c) {
-            return Optional.of(uuidPerson);
-        }
-
-        // if can't find by PersonGUID, search by REFN/*UID tag
-        final Optional<UUID> optUuidPK = findPersonInTreeByRefn(indexedDatabase, new Refn(uuidPerson));
-        if (optUuidPK.isPresent()) {
-            return optUuidPK;
-        }
-
-        return Optional.empty();
-    }
-
-    private Optional<UUID> findPersonInTreeByRefn(final IndexedDatabase indexedDatabase, final Refn uuidRefn) throws SQLException {
-        final Optional<UUID> optPersonGuid;
-        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-            final RefnMap map = session.getMapper(RefnMap.class);
-            optPersonGuid = Optional.ofNullable(map.select(uuidRefn));
-            if (optPersonGuid.isPresent()) {
-                LOG.debug("located matching Person for REFN {}: PersonGUID={}", uuidRefn, optPersonGuid.get());
+            optFiltered = Optional.ofNullable(map.select(query));
+            if (optFiltered.isPresent()) {
+                LOG.debug("Found matching Person: {}", optFiltered.get());
             } else {
-                LOG.info("Did not find REFN {}", uuidRefn);
+                LOG.info("Did not find Person matching {}", query);
             }
         }
-        return optPersonGuid;
+
+        return optFiltered;
     }
+
+//    private Optional<UUID> findPersonInTreeByRefn(final IndexedDatabase indexedDatabase, final Refn uuidRefn) throws SQLException {
+//        final Optional<UUID> optPersonGuid;
+//        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+//            final RefnMap map = session.getMapper(RefnMap.class);
+//            optPersonGuid = Optional.ofNullable(map.select(uuidRefn));
+//            if (optPersonGuid.isPresent()) {
+//                LOG.debug("located matching Person for REFN {}: PersonGUID={}", uuidRefn, optPersonGuid.get());
+//            } else {
+//                LOG.info("Did not find REFN {}", uuidRefn);
+//            }
+//        }
+//        return optPersonGuid;
+//    }
 
     private static Optional<IndexedDatabase> findTree(final String nameTree) {
         for (final IndexedDatabase idb : loadDatabaseIndex()) {
@@ -275,6 +276,9 @@ public class FtmViewerServlet extends HttpServlet {
         final Element html = e(dom, "html");
         final Element head = e(html, "head");
         final Element body = e(html, "body");
+        final Element a = e(body, "a");
+        a.setAttribute("href", "./");
+        a.setTextContent("{home}");
 
         final Element h1 = e(body, "h3");
         h1.setTextContent("Browse a genealogy database");
@@ -283,9 +287,9 @@ public class FtmViewerServlet extends HttpServlet {
         for (final IndexedDatabase iDb : loadDatabaseIndex()) {
             LOG.debug("    {}", iDb.file());
             final Element li = e(ul, "li");
-            final Element a = e(li, "a");
-            a.setAttribute("href", urlQueryTree(iDb));
-            a.setTextContent("{"+iDb.file().getName()+"}");
+            final Element link = e(li, "a");
+            link.setAttribute("href", urlQueryTree(iDb));
+            link.setTextContent("{"+iDb.file().getName()+"}");
         }
 
         return dom;
@@ -305,14 +309,20 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element html = e(dom, "html");
         final Element head = e(html, "head");
+        final Element title = e(head, "title");
+        title.setTextContent(indexedDatabase.file().getName());
         final Element body = e(html, "body");
-
-        final Element h1 = e(body, "h3");
-        h1.setTextContent(indexedDatabase.toString());
 
         final Element a = e(body, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
+
+        final Element a2 = e(body, "a");
+        a2.setAttribute("href", urlQueryTree(indexedDatabase));
+        a2.setTextContent("{"+indexedDatabase.file().getName()+"}");
+
+        final Element h1 = e(body, "h3");
+        h1.setTextContent(indexedDatabase.file().getName());
 
         final Element ul = e(body, "ul");
         for (final IndexedPerson indexedPerson : list) {
@@ -331,34 +341,83 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private Document pagePerson(IndexedDatabase indexedDatabase, UUID uuidPerson) throws ParserConfigurationException, SQLException {
+        final Person person = loadPersonDetails(indexedDatabase, uuidPerson);
+
         final Document dom = XmlUtils.empty();
 
         final Element html = e(dom, "html");
         final Element head = e(html, "head");
+        final Element title = e(head, "title");
+        title.setTextContent(person.nameWithSlashes());
         final Element body = e(html, "body");
 
-        final FullPerson person = fragPersonParents(indexedDatabase, uuidPerson, body);
+        final Element a = e(body, "a");
+        a.setAttribute("href", "./");
+        a.setTextContent("{home}");
 
-        final Element header = e(body, "header");
-        e(header, "hr");
-        final Element h1 = e(header, "h1");
-        h1.setAttribute("class", "personName");
-        h1.setTextContent(person.toString());
+        final Element a2 = e(body, "a");
+        a2.setAttribute("href", urlQueryTree(indexedDatabase));
+        a2.setTextContent("{"+indexedDatabase.file().getName()+"}");
+
+        fragPersonParents(indexedDatabase, uuidPerson, body);
+
+        // TODO "see also" other databases
+
+        fragName(indexedDatabase, uuidPerson, person, body);
+
+        // TODO events
 
         fragPersonPartnerships(indexedDatabase, uuidPerson, body);
+
+        // TODO footnotes
+
+        fragFooter(body);
 
         return dom;
     }
 
-    private FullPerson fragPersonParents(IndexedDatabase indexedDatabase, UUID uuidPerson, Element body) throws SQLException {
-        final FullPerson person;
+    private static void fragName(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Person person, final Element body) {
+        final Element header = e(body, "header"); {
+            e(header, "hr");
+
+            final Element h1 = e(header, "h1"); {
+
+                final Element a = e(h1, "a");
+                a.setTextContent(new String(Character.toChars(0x1F517)));
+                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidPerson));
+
+                final Element personName = e(h1, "span");
+                personName.setAttribute("class", "personName");
+                personName.setTextContent("\u00A0" + person.nameWithSlashes());
+            }
+        }
+    }
+
+    private static void fragFooter(final Element body) {
+        final Element footer = e(body, "footer");
+        e(footer, "hr");
+
+        final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        final Element time = e(footer, "small");
+        time.setTextContent("Page generated "+sNow);
+    }
+
+    private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final UUID uuidPerson) throws SQLException {
+        final Person person;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-            final ParentsMap map = session.getMapper(ParentsMap.class);
+            final PersonDetailsMap map = session.getMapper(PersonDetailsMap.class);
             person = map.select(IndexedPerson.from(uuidPerson));
         }
+        return person;
+    }
 
-        final List<PersonParent> parents = person.parents;
-        LOG.debug("parents selected: {}", parents);
+    private void fragPersonParents(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Element body) throws SQLException {
+        final List<PersonParent> parents;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final ParentsMap map = session.getMapper(ParentsMap.class);
+            parents = filterParents(map.select(IndexedPerson.from(uuidPerson)));
+        }
 
         final Element section = e(body, "section");
         section.setAttribute("class", "parents");
@@ -375,38 +434,66 @@ public class FtmViewerServlet extends HttpServlet {
             final Element table = e(section, "table");
             final Element tbody = e(table, "tbody");
             for (final PersonParent parent : parents) {
-                if (Objects.isNull(parent.id())) {
+                UUID uuidLink= parent.id();
+                final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
+                if (optRefn.isPresent()) {
+                    uuidLink = optRefn.get().uuid();
+                }
+                final Element tr = e(tbody, "tr");
+                final Element td = e(tr, "td");
+                final Element nature = e(td, "span");
+                nature.setAttribute("class", "nature");
+                nature.setTextContent("(" + parent.nature() + ")");
+                final Element a = e(td, "a");
+                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
+                a.setTextContent(parent.name());
+            }
+        }
+    }
+
+    private List<PersonParent> filterParents(final List<PersonParent> parents) {
+        final List<PersonParent> r = new ArrayList<>();
+        if (Objects.isNull(parents)) {
+            LOG.warn("parents array reference is null.");
+        } else if (parents.isEmpty()) {
+            LOG.warn("parents array reference is empty.");
+        } else {
+            for (final PersonParent parent : parents) {
+                LOG.warn("parent {}", parent);
+                if (Objects.isNull(parent)) {
                     LOG.warn("For parents, ignoring NULL entry.");
+                } else if (Objects.isNull(parent.id())) {
+                    LOG.warn("For parents, ignoring person with NULL id: {}", parent);
                 } else {
-                    UUID uuidLink= parent.id();
-                    final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
-                    if (optRefn.isPresent()) {
-                        uuidLink = optRefn.get().uuid();
-                    }
-                    final Element tr = e(tbody, "tr");
-                    final Element td = e(tr, "td");
-                    final Element nature = e(td, "span");
-                    nature.setAttribute("class", "nature");
-                    nature.setTextContent("(" + parent.nature() + ")");
-                    final Element a = e(td, "a");
-                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
-                    a.setTextContent(parent.name());
+                    LOG.debug("will use parent: {}", parent);
+                    r.add(parent);
                 }
             }
         }
-
-        return person;
+        return r;
     }
 
-    private void fragPersonPartnerships(IndexedDatabase indexedDatabase, UUID uuidPerson, Element body) throws SQLException {
-        final Optional<FullPerson> optPerson;
+    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final UUID uuidPerson, final Element body) throws SQLException {
+        final List<PersonPartnership> partnerships;
+
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PartnershipsMap map = session.getMapper(PartnershipsMap.class);
-            optPerson = Optional.ofNullable(map.select(IndexedPerson.from(uuidPerson)));
+            partnerships = map.select(IndexedPerson.from(uuidPerson));
         }
 
-        if (optPerson.isPresent()) {
-            final List<PersonPartnership> partnerships = optPerson.get().getPartnerships();
+        if (Objects.isNull(partnerships) || partnerships.isEmpty()) {
+            LOG.debug("no partnerships selected");
+            final Element section = e(body, "section");
+            section.setAttribute("class", "partnership");
+            e(section, "hr");
+            final Element table = e(section, "table");
+            final Element tbody = e(table, "tbody");
+            final Element tr = e(tbody, "tr");
+            final Element td = e(tr, "td");
+            final Element span = e(td, "span");
+            span.setAttribute("class", "missing");
+            span.setTextContent("[no known partnerships (in this database)]");
+        } else {
             LOG.debug("partnerships selected: {}", partnerships);
             for (final PersonPartnership partnership : partnerships) {
                 UUID uuidLink= partnership.idPerson();
@@ -426,33 +513,29 @@ public class FtmViewerServlet extends HttpServlet {
                 nature.setAttribute("class", "nature");
                 nature.setTextContent("(" + partnership.nature() + ")");
 
-                final Element a = e(td, "a");
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
-                a.setTextContent(partnership.name());
+                if (Objects.isNull(uuidLink)) {
+                    final Element span = e(td, "span");
+                    span.setTextContent("[unknown partner]");
+                } else {
+                    final Element a = e(td, "a");
+                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, uuidLink));
+                    a.setTextContent(partnership.name());
+                }
+
+                // TODO events
 
                 fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
             }
-        } else {
-            final Element section = e(body, "section");
-            section.setAttribute("class", "partnership");
-            e(section, "hr");
-            final Element table = e(section, "table");
-            final Element tbody = e(table, "tbody");
-            final Element tr = e(tbody, "tr");
-            final Element td = e(tr, "td");
-            final Element span = e(td, "span");
-            span.setAttribute("class", "missing");
-            span.setTextContent("[no known partnerships (in this database)]");
         }
     }
 
-    private void fragPersonPartnershipChildren(IndexedDatabase indexedDatabase, int idRelationship, Element section) throws SQLException {
+    private void fragPersonPartnershipChildren(final IndexedDatabase indexedDatabase, final int idRelationship, final Element section) throws SQLException {
         final List<PersonChild> children;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
             children = map.select(idRelationship);
         }
-        if (children.isEmpty()) {
+        if (Objects.isNull(children) || children.isEmpty()) {
             final Element table = e(section, "table");
             final Element tbody = e(table, "tbody");
             final Element tr = e(tbody, "tr");
@@ -478,13 +561,17 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
+    private static Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
         final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file());
         LOG.debug("Opened JDBC Connection [{}], auto-commit={}, transaction-isolation={}", conn, conn.getAutoCommit(), conn.getTransactionIsolation());
         return conn;
     }
 
     private Optional<Refn> findRefnFor(final IndexedDatabase indexedDatabase, final UUID personGuid) throws SQLException {
+        if (Objects.isNull(personGuid)) {
+            LOG.info("Skipping REFN search for PersonGUID=NULL");
+            return Optional.empty();
+        }
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             LOG.debug("Searching for REFN/UUID for Person with PersonGUID={}", personGuid);
             final RefnReverseMap map = session.getMapper(RefnReverseMap.class);

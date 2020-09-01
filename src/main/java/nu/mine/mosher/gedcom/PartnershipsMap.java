@@ -1,5 +1,7 @@
 package nu.mine.mosher.gedcom;
 
+import java.util.List;
+
 public interface PartnershipsMap {
-    FullPerson select(IndexedPerson indexedPerson);
+    List<PersonPartnership> select(IndexedPerson indexedPerson);
 }

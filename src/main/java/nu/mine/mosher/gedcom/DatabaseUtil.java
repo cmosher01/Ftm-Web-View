@@ -32,6 +32,8 @@ public class DatabaseUtil {
 //    }
 
     public static byte[] permute(byte[] s) {
+        LOG.trace("original UUID:  {}(byte[]) = [{}]", s.toString(), String.format("%032x", new BigInteger(1, s)));
+
         final byte[] d = new byte[16];
 
         d[0x0] = s[0x3];

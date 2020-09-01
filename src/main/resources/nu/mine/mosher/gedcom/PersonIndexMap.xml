@@ -14,7 +14,5 @@
                 Fact.LinkID = Person.ID AND
                 Fact.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Tag LIKE '%UID%' OR FactType.Tag LIKE '%REFN%')
             )
-        ORDER BY
-            id
     </select>
 </mapper>

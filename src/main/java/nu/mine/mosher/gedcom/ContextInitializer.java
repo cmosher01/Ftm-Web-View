@@ -77,6 +77,7 @@ public class ContextInitializer implements ServletContextListener {
         config.addMapper(RefnReverseMap.class);
         config.addMapper(PersonIndexMap.class);
         config.addMapper(PersonMap.class);
+        config.addMapper(PersonDetailsMap.class);
         config.addMapper(ParentsMap.class);
         config.addMapper(PartnershipsMap.class);
         config.addMapper(ChildrenMap.class);

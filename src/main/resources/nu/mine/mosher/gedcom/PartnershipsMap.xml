@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.PartnershipsMap">
-    <resultMap id="partnership_result" type="nu.mine.mosher.gedcom.PersonPartnership" autoMapping="false">
+    <resultMap id="result" type="nu.mine.mosher.gedcom.PersonPartnership" autoMapping="false">
         <constructor>
             <idArg column="id" javaType="_int"/>
             <idArg column="person_id" javaType="java.util.UUID"/>
@@ -10,24 +10,16 @@
         </constructor>
     </resultMap>
 
-    <resultMap id="result" type="nu.mine.mosher.gedcom.FullPerson" autoMapping="false">
-        <id column="id" property="id"/>
-        <collection property="partnerships" columnPrefix="partnership_" resultMap="partnership_result"/>
-    </resultMap>
-
-
-
-    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
+    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
         WITH Param AS (
             SELECT ID as PersonID FROM Person WHERE PersonGUID = #{id}
         )
 
         SELECT
-            Self.PersonGUID AS id,
-            Relationship.ID AS partnership_id,
-            Person.PersonGUID AS partnership_person_id,
-            Person.FullNameReversed AS partnership_person_name,
-            Relationship.Nature AS partnership_nature
+            Relationship.ID AS id,
+            Person.PersonGUID AS person_id,
+            Person.FullNameReversed AS person_name,
+            Relationship.Nature AS nature
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -37,16 +29,15 @@
             Relationship ON (Relationship.Person1ID = Param.PersonID) LEFT OUTER JOIN -- note: person 1
             Person ON (Person.ID = Relationship.Person2ID) -- note: person 2
         WHERE
-            Person.ID IS NOT NULL
+            Relationship.ID IS NOT NULL
 
         UNION ALL
 
         SELECT
-            Self.PersonGUID AS id,
-            Relationship.ID AS partnership_id,
-            Person.PersonGUID AS partnership_person_id,
-            Person.FullNameReversed AS partnership_person_name,
-            Relationship.Nature AS partnership_nature
+        Relationship.ID AS id,
+        Person.PersonGUID AS person_id,
+        Person.FullNameReversed AS person_name,
+        Relationship.Nature AS nature
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -56,9 +47,6 @@
             Relationship ON (Relationship.Person2ID = Param.PersonID) LEFT OUTER JOIN -- note: person 2
             Person ON (Person.ID = Relationship.Person1ID) -- note: person 1
         WHERE
-            Person.ID IS NOT NULL
-
-        ORDER BY
-            id
+            Relationship.ID IS NOT NULL
     </select>
 </mapper>

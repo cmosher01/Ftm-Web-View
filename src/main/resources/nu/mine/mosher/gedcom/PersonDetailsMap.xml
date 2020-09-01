@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.gedcom.PersonDetailsMap">
+    <resultMap id="result" type="nu.mine.mosher.gedcom.Person" autoMapping="false">
+        <constructor>
+            <idArg column="id" javaType="java.util.UUID"/>
+            <arg column="nameWithSlashes" javaType="String"/>
+        </constructor>
+    </resultMap>
+
+    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
+        SELECT
+            PersonGUID as id,
+            Title as nameWithSlashes
+        FROM
+            Person
+        WHERE
+            PersonGUID = #{id}
+    </select>
+</mapper>
