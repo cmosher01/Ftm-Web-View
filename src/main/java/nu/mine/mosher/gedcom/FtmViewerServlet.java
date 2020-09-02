@@ -396,8 +396,6 @@ public class FtmViewerServlet extends HttpServlet {
 
         fragPersonParents(indexedDatabase, indexedPerson, body);
 
-        // TODO "see also" other databases
-
         fragName(indexedDatabase, indexedPerson, person, body);
 
         // TODO events

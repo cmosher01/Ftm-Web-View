@@ -69,11 +69,103 @@ dates:
 
     10000000 = unknown day
     01000000 = unknown month
-    00100000 = ?
-    00010000 = ?
-    00001000 = ?
-    00000100 = ?
+    00100000 = unknown year
+    00010000 = dual date
+    00001000 = quarter?
+    00000100 = calculated
+    00000010 = after
+    00000001 = before
     00000011 = ABT
+
+
+
+
+
+
+    // 0x0003FD90: MyFamily.Shared.Properties.DateParserStrings.resources (792 bytes, Embedded, Public)
+
+
+    // 0x0003FF7A: About = "about,abt,circa,cca,cir,ca,estimated,est,c,approximately,approx.,approx,a"
+    // 0x0003FF74: AD = "a.d."
+    // 0x0003FFC5: After = "after:,post,aft.,after,aft"
+    // 0x0003FFE1: And = "and"
+    // 0x0003FFE6: BC = "b.c."
+    // 0x0003FFEC: BCE = "b.c.e."
+    // 0x0003FFF4: Before = "before:,ante,bef.,by,before,bef,B. ,b. ,B ,b "
+    // 0x00040023: Between = "estbetween:,estbetween,between:,between,bet.,bet,btw.,btw"
+    // 0x00040064: Calculated = "calculated,cal"
+    // 0x0004005E: CE = "c.e."
+    // 0x00040074: Or = "or"
+    // 0x00040078: Quarter = "quarter,qtr.,qtr"
+    // 0x0004008A: Range = "range:,from,to,and,range"
+    // 0x000400A4: To = "to"
+
+
+
+
+                                                        AAAAAAAABBBBBBBB CCCCCCCCDDDDDDDD
+    internal const uint MODIFIER_MASK = 511U;                            0000000111111111
+    internal const uint PROXIMITY_MASK = 7U;                                     00000111
+    internal const uint KEYWORD_MASK = 65535U;                           1111111111111111
+
+    internal const uint SDN_MASK = 2147483136U;         0111111111111111 1111111000000000
+    internal const uint ENCODING_MASK = 2147483648U;    1000000000000000 0000000000000000
+    internal const uint ENCODING_KEYWORD = 2147483648U; 1000000000000000 0000000000000000
+    internal const uint ENCODING_SDN = 0U;                                       00000000
+    internal const int SDN_SHIFT = 9;
+
+    internal const uint DAYMISSING_MASK = 128U;                                  10000000
+    internal const uint MONTHMISSING_MASK = 64U;                                 01000000
+    internal const uint YEARMISSING_MASK = 32U;                                  00100000
+    internal const uint DUALDATE_MASK = 16U;                                     00010000
+    internal const uint QUARTER_DATE_MASK = 8U;                                  00001000
+    internal const uint MODIFIER_CALCULATED = 4U;                                00000100
+    internal const uint MODIFIER_AFTER = 2U;                                     00000010
+    internal const uint MODIFIER_BEFORE = 1U;                                    00000001
+    internal const uint MODIFIER_ABOUT = 3U;                                     00000011
+    internal const uint MODIFIER_NONE = 0U;                                      00000000
+
+
+
+
+    DateSort1      DateSort2      DateModifier1  DateModifier2  Date                       Text
+    -------------  -------------  -------------  -------------  -------------------------  --------------------------------------------------------------------------------
+                                                                                           "" no date
+    880809152                     0                             880809152                  "3 BC" year era
+    881744064                     0                             881744064                  "3 AD" year era
+    1199307792                    0                             1199307792                 "02 Mar 1700/01" day month dual-year
+    1252012224     1252386496     0              0              1252012224:1252386496      "Bet. 1983–1985" between year and year
+    1252012224     1252479104     0              0              1252012224:1252479104      "Bet. 1983–Jul 1985" between year and month year
+    1252012224     1252480000     0              0              1252012224:1252480000      "Bet. 1983–03 Jul 1985" between year and day month year
+    1252104832     1252386496     0              0              1252104832:1252386496      "Bet. Jul 1983–1985" between month year and year
+    1252104832     1252479104     0              0              1252104832:1252479104      "Bet. Jul 1983–Jul 1985" between month year and month year
+    1252104832     1252480000     0              0              1252104832:1252480000      "Bet. Jul 1983–03 Jul 1985" between month year and day month year
+    1252105728     1252386496     0              0              1252105728:1252386496      "Bet. 03 Jul 1983–1985" between day month year and year
+    1252105728     1252479104     0              0              1252105728:1252479104      "Bet. 03 Jul 1983–Jul 1985" between day month year and month year
+    1252105728     1252480000     0              0              1252105728:1252480000      "Bet. 03 Jul 1983–03 Jul 1985" between day month year and day month year
+    1252199104                    0                             1252199104                 "1984" year
+    1252199105                    -1                            1252199105                 "Bef. 1984" before year
+    1252199106                    1                             1252199106                 "Aft. 1984" after year
+    1252199107                    -1                            1252199107                 "Abt 1984" about year
+    1252292224                    0                             1252292224                 "Jul 1984" month year
+    1252292225                    -1                            1252292225                 "Bef. Jul 1984" before month year
+    1252292226                    1                             1252292226                 "Aft. Jul 1984" after month year
+    1252292227                    -1                            1252292227                 "Abt Jul 1984" about month year
+    1252293120                    0                             1252293120                 "03 Jul 1984" day month year
+    1252293121                    -1                            1252293121                 "Bef. 03 Jul 1984" before day month year
+    1252293122                    1                             1252293122                 "Aft. 03 Jul 1984" after day month year
+    1252293123                    -1                            1252293123                 "Abt 03 Jul 1984" about day month year
+    1252293376                    0                             1252293376                 "Cal. 03 Jul 1984" calculated
+    2147293824                    0                             112800                     "Jul" month
+    2147294720                    0                             113696                     "03 Jul" day month
+    2147387392                    0                             2147483665                 "Unknown" unknown
+    2147387392                    0                             3 invalid format           "3 invalid format" invalid
+
+
+
+
+
+
 
 
 
