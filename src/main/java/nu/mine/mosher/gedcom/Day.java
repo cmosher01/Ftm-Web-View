@@ -2,21 +2,214 @@ package nu.mine.mosher.gedcom;
 
 
 
-import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.JulianFields;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static nu.mine.mosher.gedcom.DatabaseUtil.bits;
 
 
 
-public record Day(int ftmDate, LocalDate date) implements Comparable<Day> {
-    public static Day fromFtmFactDate(final int dateFtmFact) {
-        return new Day(dateFtmFact, LocalDate.MIN.with(JulianFields.JULIAN_DAY, dateFtmFact >> 9));
+public class Day implements Comparable<Day> {
+    private static final Logger LOG =  LoggerFactory.getLogger(Day.class);
+    private static final FlaggedDate UNKNOWN = new FlaggedDate(0x80000011);
+
+    private final FlaggedDate earliest;
+    private final FlaggedDate latest;
+    private final String other;
+
+    private Day(final long d1, final long d2, final String other) {
+        FlaggedDate fd1 = new FlaggedDate(d1);
+        FlaggedDate fd2 = new FlaggedDate(d2);
+
+        // doctor up "after/before" flags into earliest/latest dates
+        if (fd1.equals(fd2) && !fd1.about) {
+            if (fd1.after) {
+                fd2 = UNKNOWN;
+            } else if (fd1.before) {
+                fd2 = fd1;
+                fd1 = UNKNOWN;
+            }
+        }
+
+        this.earliest = fd1;
+        this.latest = fd2;
+        this.other = other;
+
+        dump();
+    }
+
+    @Override
+    public String toString() {
+        if (this.other.isEmpty()) {
+            final StringBuilder s = new StringBuilder(32);
+            s.append(this.earliest);
+            if (!this.latest.equals(this.earliest)) {
+                s.append('~');
+                s.append(this.latest);
+            }
+            return s.toString();
+        } else {
+            return String.format("\u201C%s\u201D", this.other);
+        }
+    }
+
+    public void dump(){
+        if (!other.isBlank()) {
+            LOG.trace("Day (non-parsed): \"{}\"", this.other);
+        } else {
+            if (this.earliest.equals(this.latest)) {
+                LOG.trace("Day: {}", this.earliest.dump());
+            } else {
+                LOG.trace("Day: earliest: {}", this.earliest.dump());
+                LOG.trace("Day:   latest: {}", this.latest.dump());
+            }
+        }
+    }
+
+    private static final Pattern ONE_DATE = Pattern.compile("^(\\d+)$");
+    private static final Pattern TWO_DATES = Pattern.compile("^(\\d+):(\\d+)$");
+
+    public static Day fromFtmFactDate(final String d) {
+        Matcher m;
+        if ((m = ONE_DATE.matcher(d)).matches()) {
+            final long date = Long.parseLong(m.group(1), 10);
+            return new Day(date, date, "");
+        } else if ((m = TWO_DATES.matcher(d)).matches()) {
+            final long date1 = Long.parseLong(m.group(1), 10);
+            final long date2 = Long.parseLong(m.group(2), 10);
+            return new Day(date1, date2, "");
+        } else {
+            return new Day(0, 0, d);
+        }
     }
 
     @Override
     // not consistent with equals
-    public int compareTo(@NotNull Day that) {
-        return this.date().compareTo(that.date());
+    public int compareTo(Day that) {
+        return this.earliest.compareTo(that.earliest);
+    }
+
+
+
+    // TODO: BC dates: year negative 2 equals 3 BC
+    private static class FlaggedDate implements Comparable<FlaggedDate> {
+        private final long flags;
+        private final boolean unknown;
+        private final long d;
+        private final LocalDate ld;
+        private final boolean before;
+        private final boolean after;
+        private final boolean about;
+        private final boolean dualYear;
+        private final boolean noYear;
+        private final boolean noMonth;
+        private final boolean noDay;
+        private final boolean calculated;
+
+        private FlaggedDate(final long n) {
+            this.flags = n & 0x1FF;
+            this.unknown = (Integer.MIN_VALUE & n) != 0;
+            this.d = (Integer.MAX_VALUE & n) >> 9;
+
+            this.ld = LocalDate.MIN.with(JulianFields.JULIAN_DAY, this.d);
+            final BigInteger f = BigInteger.valueOf(this.flags);
+            this.before = f.testBit(0);
+            this.after = f.testBit(1);
+            this.about = this.before && this.after;
+            this.dualYear = f.testBit(4);
+            this.noYear = f.testBit(5);
+            this.noMonth = f.testBit(6);
+            this.noDay = f.testBit(7);
+            this.calculated = f.testBit(8);
+        }
+
+        @Override
+        public String toString() {
+            // TODO XML string
+            if (this.unknown) {
+                return "\u00d7\u00d7\u00d7\u00d7\u2012\u00d7\u00d7\u2012\u00d7\u00d7";
+            }
+
+            final StringBuilder s = new StringBuilder(16);
+            if (this.noYear) {
+                s.append("\u00d7".repeat(4)); // math cross product/multiply symbol: "x"
+            } else
+            {
+                int year = this.ld.getYear();
+                if (year < 0)
+                {
+                    year = 1-year;
+                    s.append('\u2212'); // math minus/negative: "-"
+                }
+                s.append(String.format("%4d", year).replace(' ', '\u00A0'));
+            }
+            s.append('\u2012'); // figure dash
+            if (this.noMonth) {
+                s.append("\u00d7".repeat(2)); // math cross product/multiply symbol: "x"
+            } else
+            {
+                int month = this.ld.getMonthValue();
+                s.append(String.format("%02d", month));
+            }
+            s.append('\u2012'); // figure dash
+            if (this.noDay) {
+                s.append("\u00d7".repeat(2)); // math cross product/multiply symbol: "x"
+            } else
+            {
+                int day = this.ld.getDayOfMonth();
+                s.append(String.format("%02d", day));
+            }
+//            s.append('[');
+//            s.append(this.after ? 'A' : '-');
+//            s.append(this.before ? 'B' : '-');
+//            s.append(this.dualYear ? '/' : '-');
+//            s.append(this.calculated ? '=' : '-');
+//            s.append(']');
+            if (this.about) {
+                s.append("~");
+            }
+            if (this.calculated) {
+                s.append("=");
+            }
+
+            return s.toString();
+        }
+
+        public String dump() {
+            return "date="+String.format("\"{%s}(%d)%s[%9s]\"",
+                unknown ? '1' : '0',
+                d,
+                ld.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                bits(flags, 9))
+                +", fmt=\""+this+"\"";
+        }
+
+        @Override
+        // not consistent with equals
+        public int compareTo(final Day.FlaggedDate o) {
+            return Long.compare(this.d, o.d);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (Objects.isNull(o) || !(o instanceof FlaggedDate)) {
+                return false;
+            }
+            final FlaggedDate that = (FlaggedDate)o;
+            return this.flags == that.flags && this.unknown == that.unknown && this.d == that.d;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.flags, this.unknown, this.d);
+        }
     }
 }

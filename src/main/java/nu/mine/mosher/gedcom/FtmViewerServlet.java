@@ -16,6 +16,7 @@ import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
@@ -360,7 +361,7 @@ public class FtmViewerServlet extends HttpServlet {
                     LOG.debug("checking database: {}",db);
                     final Optional<IndexedPerson> optPerson = findPersonInTree(db, indexedPerson);
                     if (optPerson.isPresent()) {
-                        LOG.debug("Found person {} in alternate tree {}", optPerson, db);
+                        LOG.debug("Found person {} in alternate tree {}", optPerson.get(), db);
                         if (!labeled) {
                             final Element span = e(nav, "span");
                             span.setTextContent("see also: ");
@@ -398,7 +399,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         fragName(indexedDatabase, indexedPerson, person, body);
 
-        // TODO events
+        fragEvents(indexedDatabase, indexedPerson, person.pkid(), body);
 
         fragPersonPartnerships(indexedDatabase, indexedPerson, body);
 
@@ -407,6 +408,45 @@ public class FtmViewerServlet extends HttpServlet {
         fragFooter(body);
 
         return dom;
+    }
+
+    private void fragEvents(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final int idPerson, final Element body) throws SQLException {
+        final List<Event> events;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final EventsMap map = session.getMapper(EventsMap.class);
+            events = map.select(new FtmLink(FtmLinkTableID.Person, idPerson));
+        }
+        LOG.debug("loaded events: {}", events);
+
+        final Element section = e(body, "section");
+        section.setAttribute("class", "events");
+        e(section, "hr");
+        final Element table = e(section, "table");
+        final Element tbody = e(table, "tbody");
+        for (final Event event : events) {
+            final Element tr = e(tbody, "tr");
+            final Element tdDate = e(tr, "td");
+            tdDate.setAttribute("class", "eventDate");
+            final Element monospaced = e(tdDate, "code");
+            ifPresent(event.date(), monospaced);
+            final Element tdPlace = e(tr, "td");
+            tdPlace.setAttribute("class", "eventPlace");
+            ifPresent(event.place(), tdPlace);
+            final Element tdDescription = e(tr, "td");
+            tdDescription.setAttribute("class", "eventDescription");
+            final Element spanType = e(tdDescription, "span");
+            ifPresent(event.type(), spanType);
+            if (Objects.nonNull(event.description()) && !event.description().isBlank()) {
+                final Element spanSep = e(tdDescription, "span");
+                spanSep.setTextContent(":");
+                final Element spanDesc = e(tdDescription, "span");
+                spanDesc.setTextContent(event.description());
+            }
+        }
+    }
+
+    private void ifPresent(Object it, Element e) {
+        e.setTextContent(Optional.ofNullable(it).map(Object::toString).filter(s -> !s.isBlank()).orElse("\u00a0\u2e3a"));
     }
 
     private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {

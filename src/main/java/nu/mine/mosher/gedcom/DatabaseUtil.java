@@ -27,10 +27,6 @@ public class DatabaseUtil {
         return bb.array();
     }
 
-//    public static byte[] permute(Object s) {
-//        return permute((byte[])s);
-//    }
-
     public static byte[] permute(byte[] s) {
         LOG.trace("original UUID:  {}(byte[]) = [{}]", s.toString(), String.format("%032x", new BigInteger(1, s)));
 
@@ -60,5 +56,16 @@ public class DatabaseUtil {
         LOG.trace("permuted UUID:  {}(byte[]) = [{}]", d.toString(), String.format("%032x", new BigInteger(1, d)));
 
         return d;
+    }
+
+    public static String bits(long n, final int c){
+        final StringBuilder s = new StringBuilder();
+
+        for (int i = 0; i < c; ++i) {
+            s.append((n&1) == 0 ? '0' : '1');
+            n >>= 1;
+        }
+
+        return s.reverse().toString();
     }
 }

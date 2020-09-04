@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.gedcom.EventsMap">
+    <select id="select" resultType="nu.mine.mosher.gedcom.Event" parameterType="nu.mine.mosher.gedcom.FtmLink" resultOrdered="true">
+        SELECT
+            Fact.ID AS pkid,
+            Fact.Date AS date,
+            Place.Name AS place,
+            FactType.Name AS type,
+            Fact.Text AS description
+        FROM
+            Fact LEFT OUTER JOIN
+            FactType ON FactType.ID = Fact.FactTypeID LEFT OUTER JOIN
+            Place ON Place.ID = Fact.PlaceID
+        WHERE
+            Fact.LinkTableID = #{table.id} AND
+            Fact.LinkID = #{id}
+        ORDER BY
+            Fact.DateSort1
+    </select>
+</mapper>

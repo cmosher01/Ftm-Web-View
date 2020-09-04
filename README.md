@@ -66,16 +66,19 @@ dates:
         Y => 1 JAN Y | 00C0 (YEAR)
 
 
+There are 9 flag bits:
 
-    10000000 = unknown day
-    01000000 = unknown month
-    00100000 = unknown year
-    00010000 = dual date
-    00001000 = quarter?
-    00000100 = calculated
-    00000010 = after
-    00000001 = before
-    00000011 = ABT
+    100000000 = calculated
+    010000000 = unknown day
+    001000000 = unknown month
+    000100000 = unknown year
+    000010000 = dual date
+    000001000 = quarter??? (can't reproduce) (is this UK only?)
+    000000100 = calculated??? (can't reproduce)
+    000000010 = after
+    000000001 = before
+
+    000000011 = ("both before and after" means "about")
 
 
 

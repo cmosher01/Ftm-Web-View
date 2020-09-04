@@ -5,17 +5,19 @@
         <constructor>
             <idArg column="id" javaType="java.util.UUID"/>
             <arg column="nameWithSlashes" javaType="String"/>
+            <arg column="pkid" javaType="_int"/>
         </constructor>
     </resultMap>
 
     <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
         SELECT
-            PersonGUID AS id,
-            Fact.Text AS nameWithSlashes
+            Person.PersonGUID AS id,
+            NameFact.Text AS nameWithSlashes,
+            Person.ID AS pkid
         FROM
             Person LEFT OUTER JOIN
-            Fact ON (Fact.ID = Person.NameFactID)
+            Fact AS NameFact ON (NameFact.ID = Person.NameFactID)
         WHERE
-            PersonGUID = #{id}
+            Person.PersonGUID = #{id}
     </select>
 </mapper>

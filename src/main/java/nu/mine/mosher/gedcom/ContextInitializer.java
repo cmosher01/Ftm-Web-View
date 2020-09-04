@@ -72,6 +72,7 @@ public class ContextInitializer implements ServletContextListener {
     private static void initMybatisConfig(final Configuration config) {
         config.getTypeHandlerRegistry().register(FtmGuidTypeHandler.class);
         config.getTypeHandlerRegistry().register(RefnTypeHandler.class);
+        config.getTypeHandlerRegistry().register(FtmDateTypeHandler.class);
 
         config.addMapper(RefnMap.class);
         config.addMapper(RefnReverseMap.class);
@@ -81,5 +82,6 @@ public class ContextInitializer implements ServletContextListener {
         config.addMapper(ParentsMap.class);
         config.addMapper(PartnershipsMap.class);
         config.addMapper(ChildrenMap.class);
+        config.addMapper(EventsMap.class);
     }
 }
