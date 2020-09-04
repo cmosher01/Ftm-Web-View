@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 docker-compose down -v
 ./gradlew build

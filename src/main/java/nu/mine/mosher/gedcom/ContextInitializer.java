@@ -73,6 +73,7 @@ public class ContextInitializer implements ServletContextListener {
         config.getTypeHandlerRegistry().register(FtmGuidTypeHandler.class);
         config.getTypeHandlerRegistry().register(RefnTypeHandler.class);
         config.getTypeHandlerRegistry().register(FtmDateTypeHandler.class);
+        config.getTypeHandlerRegistry().register(FtmPlaceTypeHandler.class);
 
         config.addMapper(RefnMap.class);
         config.addMapper(RefnReverseMap.class);
