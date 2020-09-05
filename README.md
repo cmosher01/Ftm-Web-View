@@ -166,7 +166,7 @@ There are 9 flag bits:
 
 
 
-
+Allowed date range: 1 JAN 4713 BC through 31 DEC 6000 AD, inclusive
 
 
 
