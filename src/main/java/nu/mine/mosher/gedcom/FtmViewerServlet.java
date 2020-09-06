@@ -16,7 +16,6 @@ import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
@@ -394,27 +393,21 @@ public class FtmViewerServlet extends HttpServlet {
         final Element body = e(html, "body");
 
         fragNav(indexedDatabase, indexedPerson, body);
-
         fragPersonParents(indexedDatabase, indexedPerson, body);
-
         fragName(indexedDatabase, indexedPerson, person, body);
-
-        fragEvents(indexedDatabase, indexedPerson, person.pkid(), body);
-
+        fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body);
         fragPersonPartnerships(indexedDatabase, indexedPerson, body);
-
         // TODO footnotes
-
         fragFooter(body);
 
         return dom;
     }
 
-    private void fragEvents(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final int idPerson, final Element body) throws SQLException {
+    private void fragEvents(final IndexedDatabase indexedDatabase, final FtmLink link, final Element body) throws SQLException {
         final List<Event> events;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final EventsMap map = session.getMapper(EventsMap.class);
-            events = map.select(new FtmLink(FtmLinkTableID.Person, idPerson));
+            events = map.select(link);
         }
         LOG.debug("loaded events: {}", events);
 
@@ -446,7 +439,12 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private void ifPresent(Object it, Element e) {
-        e.setTextContent(Optional.ofNullable(it).map(Object::toString).filter(s -> !s.isBlank()).orElse("\u00a0\u2e3a"));
+        e.setTextContent(
+            Optional.
+            ofNullable(it).
+            map(Object::toString).
+            filter(s -> !s.isBlank()).
+            orElse("\u00a0\u2e3a"));
     }
 
     private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {
@@ -595,7 +593,7 @@ public class FtmViewerServlet extends HttpServlet {
                     a.setTextContent(partnership.name());
                 }
 
-                // TODO events
+                fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section);
 
                 fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
             }

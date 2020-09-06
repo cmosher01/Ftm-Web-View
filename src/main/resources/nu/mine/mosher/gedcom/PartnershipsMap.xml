@@ -19,7 +19,8 @@
             Relationship.ID AS id,
             Person.PersonGUID AS person_id,
             Person.FullNameReversed AS person_name,
-            Relationship.Nature AS nature
+            Relationship.Nature AS nature,
+            (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS datesort
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -37,7 +38,8 @@
         Relationship.ID AS id,
         Person.PersonGUID AS person_id,
         Person.FullNameReversed AS person_name,
-        Relationship.Nature AS nature
+        Relationship.Nature AS nature,
+        (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS datesort
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -48,5 +50,8 @@
             Person ON (Person.ID = Relationship.Person1ID) -- note: person 1
         WHERE
             Relationship.ID IS NOT NULL
+
+        ORDER BY
+            datesort
     </select>
 </mapper>
