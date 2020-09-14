@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
+import static nu.mine.mosher.gedcom.XmlUtils.XHTML_NAMESPACE;
 import static nu.mine.mosher.gedcom.XmlUtils.e;
 
 public class FtmViewerServlet extends HttpServlet {
@@ -51,7 +52,7 @@ public class FtmViewerServlet extends HttpServlet {
         if (dom.isPresent()) {
             response.setContentType("application/xhtml+xml; charset=utf-8");
             final BufferedOutputStream out = new BufferedOutputStream(response.getOutputStream());
-            XmlUtils.serialize(dom.get(), out, true, true);
+            XmlUtils.serialize(dom.get(), out, false, true);
             out.flush();
             out.close();
         }
@@ -342,11 +343,12 @@ public class FtmViewerServlet extends HttpServlet {
         final Element a = e(nav, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
+        nav.appendChild(nav.getOwnerDocument().createTextNode(" "));
 
         if (Objects.nonNull(indexedDatabase)) {
             final Element a2 = e(nav, "a");
             a2.setAttribute("href", urlQueryTree(indexedDatabase));
-            a2.setTextContent("{" + indexedDatabase.file().getName() + "}");
+            a2.setTextContent("{" + indexedDatabase.file().getName() + "} ");
         }
 
         LOG.debug("source database: {}", indexedDatabase);
@@ -368,7 +370,7 @@ public class FtmViewerServlet extends HttpServlet {
                         }
                         final Element a3 = e(nav, "a");
                         a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
-                        a3.setTextContent("{" + db.file().getName() + "}");
+                        a3.setTextContent("{" + db.file().getName() + "} ");
                     }
                 }
             }
@@ -393,27 +395,81 @@ public class FtmViewerServlet extends HttpServlet {
         final Element body = e(html, "body");
 
         fragNav(indexedDatabase, indexedPerson, body);
+        e(body, "hr");
         fragPersonParents(indexedDatabase, indexedPerson, body);
+        e(body, "hr");
         fragName(indexedDatabase, indexedPerson, person, body);
-        fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body);
-        fragPersonPartnerships(indexedDatabase, indexedPerson, body);
-        // TODO footnotes
+        e(body, "hr");
+
+        final Footnotes<EventSource> footnotes = new Footnotes<>();
+        fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
+        fragPersonPartnerships(indexedDatabase, indexedPerson, body, footnotes);
+        e(body, "hr");
+        fragFootnotes(body, footnotes);
+        e(body, "hr");
         fragFooter(body);
 
         return dom;
     }
 
-    private void fragEvents(final IndexedDatabase indexedDatabase, final FtmLink link, final Element body) throws SQLException {
+    private void fragFootnotes(final Element body, final Footnotes<EventSource> footnotes) {
+        final int n = footnotes.size();
+        if (n <= 0) {
+            return;
+        }
+
+        final Element section = e(body, "section");
+        section.setAttribute("class", "footnotes");
+        final Element ul = e(section, "ul");
+
+        final String fmtFootnum;
+        if (n < 10) {
+            fmtFootnum = "%1d";
+        } else {
+            fmtFootnum = "%2d";
+        }
+
+        for (int i = 1; i <= n; ++i) {
+            final Element li = e(ul, "li");
+            li.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
+            final Element spanFootnum = e(li, "span");
+            spanFootnum.setAttribute("class", "footnum");
+            spanFootnum.setTextContent(formatFootnum(i, n));
+            final Element divSource = e(li, "div");
+            final Element divCitation = e(divSource, "div");
+            divCitation.setTextContent(footnotes.getFootnote(i).title());
+        }
+    }
+
+    private String formatFootnum(int i, int n) {
+        final StringBuilder s = new StringBuilder(2);
+        if (i < 10 && 10 <= n) {
+            s.append("\u2007");
+        }
+        s.append(i);
+        return s.toString();
+    }
+
+    private void fragEvents(final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<Event> events;
+        final List<EventWithSources> eventsWithSources;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final EventsMap map = session.getMapper(EventsMap.class);
             events = map.select(link);
+            final EventSourcesMap mapSources = session.getMapper(EventSourcesMap.class);
+            eventsWithSources = mapSources.select(link);
         }
-        LOG.debug("loaded events: {}", events);
+        final Map<Integer,EventWithSources> mapEventSources =
+            eventsWithSources.
+            stream().
+            collect(Collectors.toMap(e -> e.pkidFact, e -> e));
+//        LOG.debug("loaded events: {}", events);
+//        LOG.debug("loaded citations: {}", eventsWithSources);
+
+        abbreviatePlacesOf(events);
 
         final Element section = e(body, "section");
         section.setAttribute("class", "events");
-        e(section, "hr");
         final Element table = e(section, "table");
         final Element tbody = e(table, "tbody");
         for (final Event event : events) {
@@ -431,14 +487,44 @@ public class FtmViewerServlet extends HttpServlet {
             ifPresent(event.type(), spanType);
             if (Objects.nonNull(event.description()) && !event.description().isBlank()) {
                 final Element spanSep = e(tdDescription, "span");
-                spanSep.setTextContent(":");
+                spanSep.setTextContent(": ");
                 final Element spanDesc = e(tdDescription, "span");
                 spanDesc.setTextContent(event.description());
+            }
+
+            final Optional<EventWithSources> sources = Optional.ofNullable(mapEventSources.get(event.pkid()));
+            if (sources.isPresent() && !sources.get().getSources().isEmpty()) {
+                sources.get().sources.forEach(s -> {
+                    final int footnum = footnotes.putFootnote(s);
+                    final Element spanDesc = e(tdDescription, "span");
+                    spanDesc.setTextContent("["+footnum+"]");
+                });
             }
         }
     }
 
-    private void ifPresent(Object it, Element e) {
+    private static void abbreviatePlacesOf(final List<Event> events) {
+        final List<List<String>> places = events.stream().map(Event::place).map(Place::getHierarchy).collect(Collectors.toUnmodifiableList());
+        LOG.debug("extracted places: {}", places);
+        final List<List<String>> abbrevs = new PlaceListAbbrev().abbrev(places);
+        if (abbrevs.size() != places.size()) {
+            LOG.error("Unexpected size of place list after abbreviation. Ignoring abbreviations.");
+            return;
+        }
+
+        Place prev = null;
+        for (int i = 0; i < abbrevs.size(); ++i) {
+            final Place place = events.get(i).place();
+            if (place.equals(prev) && !place.toString().isBlank()) {
+                place.setDitto();
+            } else {
+                place.setDisplay(abbrevs.get(i));
+                prev = place;
+            }
+        }
+    }
+
+    private static void ifPresent(Object it, Element e) {
         e.setTextContent(
             Optional.
             ofNullable(it).
@@ -449,10 +535,7 @@ public class FtmViewerServlet extends HttpServlet {
 
     private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {
         final Element header = e(body, "header"); {
-            e(header, "hr");
-
             final Element h1 = e(header, "h1"); {
-
                 final Element a = e(h1, "a");
                 a.setTextContent(new String(Character.toChars(0x1F517)));
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
@@ -466,8 +549,6 @@ public class FtmViewerServlet extends HttpServlet {
 
     private static void fragFooter(final Element body) {
         final Element footer = e(body, "footer");
-        e(footer, "hr");
-
         final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
         final Element time = e(footer, "small");
@@ -492,18 +573,15 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element section = e(body, "section");
         section.setAttribute("class", "parents");
-        e(section, "hr");
+        final Element table = e(section, "table");
+        final Element tbody = e(table, "tbody");
         if (parents.isEmpty()) {
-            final Element table = e(section, "table");
-            final Element tbody = e(table, "tbody");
             final Element tr = e(tbody, "tr");
             final Element td = e(tr, "td");
             final Element span = e(td, "span");
             span.setAttribute("class", "missing");
             span.setTextContent("[no known parents (in this database)]");
         } else {
-            final Element table = e(section, "table");
-            final Element tbody = e(table, "tbody");
             for (final PersonParent parent : parents) {
                 UUID uuidLink= parent.id();
                 final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
@@ -544,7 +622,7 @@ public class FtmViewerServlet extends HttpServlet {
         return r;
     }
 
-    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body) throws SQLException {
+    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<PersonPartnership> partnerships;
 
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
@@ -593,7 +671,7 @@ public class FtmViewerServlet extends HttpServlet {
                     a.setTextContent(partnership.name());
                 }
 
-                fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section);
+                fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
 
                 fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
             }
@@ -606,17 +684,15 @@ public class FtmViewerServlet extends HttpServlet {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
             children = map.select(idRelationship);
         }
+        final Element table = e(section, "table");
+        final Element tbody = e(table, "tbody");
         if (Objects.isNull(children) || children.isEmpty()) {
-            final Element table = e(section, "table");
-            final Element tbody = e(table, "tbody");
             final Element tr = e(tbody, "tr");
             final Element td = e(tr, "td");
             final Element span = e(td, "span");
             span.setAttribute("class", "missing");
             span.setTextContent("[no known children for this partnership (in this database)]");
         } else {
-            final Element table = e(section, "table");
-            final Element tbody = e(table, "tbody");
             for (final PersonChild child : children) {
                 UUID uuidLink= child.id();
                 final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);

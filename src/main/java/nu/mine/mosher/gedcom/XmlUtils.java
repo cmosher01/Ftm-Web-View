@@ -12,7 +12,7 @@ import java.net.URL;
 import java.util.*;
 
 public class XmlUtils {
-    private static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+    public static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
     public static Element e(final Node parent, final String tag) {
         final Document dom;
@@ -81,7 +81,6 @@ public class XmlUtils {
     public static void configTransformer(final Transformer transform, final boolean pretty, final boolean xmldecl) {
         transform.setOutputProperty(OutputKeys.METHOD, "xml");
         transform.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-
         transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, xmldecl ? "no" : "yes");
 
         if (pretty) {

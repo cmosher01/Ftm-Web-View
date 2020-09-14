@@ -11,7 +11,17 @@ compileJava {
     options.compilerArgs << "--enable-preview"
 }
 
+compileTestJava {
+    options.compilerArgs << '-parameters'
+    options.compilerArgs << "--enable-preview"
+}
+
 tasks.withType(JavaExec) {
+    jvmArgs += "--enable-preview"
+}
+
+test {
+    useJUnitPlatform()
     jvmArgs += "--enable-preview"
 }
 

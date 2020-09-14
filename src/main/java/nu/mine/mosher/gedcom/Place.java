@@ -6,7 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 
 
@@ -14,19 +18,27 @@ public class Place {
     private static final Logger LOG =  LoggerFactory.getLogger(Place.class);
 
     private final List<String> hierarchy;
+    private List<String> display;
+    private String sDisplay = "";
     private final String description;
     private final double radLat;
     private final double radLon;
     private final boolean neg;
     private final int codeStandard;
+    private boolean ditto;
 
     private Place(List<String> hierarchy, String description, double radLat, double radLon, boolean neg, int codeStandard) {
-        this.hierarchy = hierarchy;
+        this.hierarchy = List.copyOf(hierarchy);
+        this.display = new ArrayList<>(hierarchy);
         this.description = description;
         this.radLat = radLat;
         this.radLon = radLon;
         this.neg = neg;
         this.codeStandard = codeStandard;
+    }
+
+    public List<String> getHierarchy() {
+        return new ArrayList<>(this.hierarchy);
     }
 
     public static Place fromFtmPlace(final String s) {
@@ -37,8 +49,12 @@ public class Place {
 
     @Override
     public String toString() {
+        if (this.ditto) {
+            return "\u00A0\u201D";
+        }
+
         StringBuilder s = new StringBuilder(100);
-        s.append(this.description);
+        s.append(this.sDisplay.isBlank() ? this.description : this.sDisplay);
 
         if (this.radLat != 0.0d || this.radLon != 0.0d) {
             s.append(String.format(" (%09.7f,%09.7f)", this.radLat, this.radLon));
@@ -55,6 +71,29 @@ public class Place {
         return s.toString();
     }
 
+    public void setDisplay(final List<String> display) {
+        this.display = new ArrayList<>(display);
+        this.sDisplay = String.join(", ", this.display);
+    }
+
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof Place)) {
+            return false;
+        }
+        final Place that = (Place) object;
+        return this.hierarchy.equals(that.hierarchy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.hierarchy);
+    }
+
+    public void setDitto() {
+        this.ditto = true;
+    }
+
     private static class Builder {
         private List<String> hierarchy;
         private String description;
@@ -66,18 +105,21 @@ public class Place {
         public Builder(final String description) {
             // default value if any parsing fails:
             this.description = String.format("\u201C%s\u201D", description);
+            this.hierarchy = Collections.emptyList();
 
             try {
                 parseDescription(description);
             } catch (final Throwable e) {
-                LOG.warn("unknown place name format", e);
+                LOG.warn("unknown place name format for {}", description, e);
             }
-
-            // TODO
-            this.hierarchy = new ArrayList<>(4);
         }
 
         private void parseDescription(String description) {
+            if (description.isBlank()) {
+                this.description = "";
+                return;
+            }
+
             if (description.contains("|")) {
                 /*
                         /Hamilton, Madison, New York, USA|/0.7474722/-1.318502
@@ -91,7 +133,7 @@ public class Place {
                 this.description = d;
             } else {
                 /*
-                        //Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
+                        /Room 401, Flint Hall, Syracuse University/Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
                  */
                 final String[] s = description.split("/", -1);
                 parseCodes(s);
@@ -106,6 +148,10 @@ public class Place {
                 }
                 this.description = sb.toString();
             }
+            this.hierarchy =
+                Arrays.stream(this.description.split(",")).
+                map(String::trim).
+                collect(Collectors.toUnmodifiableList());
         }
 
         private void parseCodes(final String[] s) throws NumberFormatException, ArrayIndexOutOfBoundsException {

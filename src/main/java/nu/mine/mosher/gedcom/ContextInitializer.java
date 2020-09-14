@@ -84,5 +84,6 @@ public class ContextInitializer implements ServletContextListener {
         config.addMapper(PartnershipsMap.class);
         config.addMapper(ChildrenMap.class);
         config.addMapper(EventsMap.class);
+        config.addMapper(EventSourcesMap.class);
     }
 }
