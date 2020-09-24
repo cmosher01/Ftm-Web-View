@@ -120,6 +120,8 @@ public class Place {
                 return;
             }
 
+            // TODO: /another place / with slashes | and  bars, but, resolved, in///Connecticut/USA/-9//
+            // TODO: /Place, Name w/some slash/es | and, verical | bars|//
             if (description.contains("|")) {
                 /*
                         /Hamilton, Madison, New York, USA|/0.7474722/-1.318502

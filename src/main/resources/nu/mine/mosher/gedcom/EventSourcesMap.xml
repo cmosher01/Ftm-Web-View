@@ -5,20 +5,22 @@
         <id column="pkidFact" property="pkidFact"/>
         <collection property="sources" ofType="nu.mine.mosher.gedcom.EventSource" autoMapping="true" notNullColumn="pkidCitation">
             <id property="pkidSourceLink" column="pkidSourceLink"/>
+            <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="true" notNullColumn="pkid">
+                <id property="pkid" column="pkid"/>
+            </collection>
         </collection>
     </resultMap>
-    <select id="select" resultMap="mapEventWithSources" parameterType="nu.mine.mosher.gedcom.FtmLink" resultOrdered="true">
+    <select id="select" resultMap="mapEventWithSources" parameterType="nu.mine.mosher.gedcom.FtmLink">
         SELECT
             Fact.ID AS pkidFact,
             SourceLink.ID AS pkidSourceLink,
-            SourceLink.ExternalID AS apid,
             SourceLink.Stars AS stars,
             SourceLink.Justification AS just,
             Source.ID AS pkidCitation,
             Source.PageNumber AS page,
             Source.Comment AS comment,
             Source.Footnote AS footnote,
-            Source.PID AS apidCitation,
+            Source.PID AS apid,
             MasterSource.Author AS author,
             MasterSource.Title AS title,
             MasterSource.PublisherLocation AS placePub,
@@ -27,15 +29,86 @@
             MasterSource.CallNumber AS callno,
             MasterSource.Comments AS source,
             MasterSource.PID AS apidSource,
-            MasterSource.TemplateData AS template
+            MasterSource.TemplateData AS template,
+            MediaFile.ID AS media_pkid,
+            MediaFile.FileName AS media_file
         FROM
             Fact LEFT OUTER JOIN
             SourceLink ON (SourceLink.LinkTableID = 2 AND SourceLink.LinkID = Fact.ID) LEFT OUTER JOIN
             Source ON Source.ID = SourceLink.SourceID LEFT OUTER JOIN
-            MasterSource ON MasterSource.ID = Source.MasterSourceID
+            MasterSource ON MasterSource.ID = Source.MasterSourceID LEFT OUTER JOIN
+            MediaLink ON MediaLink.LinkTableID = 16 AND MediaLink.LinkID = Source.ID LEFT OUTER JOIN
+            MediaFile ON MediaFile.ID = MediaLink.MediaFileID
         WHERE
             Fact.LinkTableID = #{table.id} AND
             Fact.LinkID = #{id}
+
+        UNION ALL
+
+        SELECT
+            Fact.ID AS pkidFact,
+            SourceLink.ID AS pkidSourceLink,
+            SourceLink.Stars AS stars,
+            SourceLink.Justification AS just,
+            Source.ID AS pkidCitation,
+            Source.PageNumber AS page,
+            Source.Comment AS comment,
+            Source.Footnote AS footnote,
+            Source.PID AS apid,
+            MasterSource.Author AS author,
+            MasterSource.Title AS title,
+            MasterSource.PublisherLocation AS placePub,
+            MasterSource.PublisherName AS pub,
+            MasterSource.PublishDate AS datePub,
+            MasterSource.CallNumber AS callno,
+            MasterSource.Comments AS source,
+            MasterSource.PID AS apidSource,
+            MasterSource.TemplateData AS template,
+            MediaFile.ID AS media_pkid,
+            MediaFile.FileName AS media_file
+        FROM
+            Fact LEFT OUTER JOIN
+            SourceLink ON (SourceLink.LinkTableID = 2 AND SourceLink.LinkID = Fact.ID) LEFT OUTER JOIN
+            Source ON Source.ID = SourceLink.SourceID LEFT OUTER JOIN
+            MasterSource ON MasterSource.ID = Source.MasterSourceID LEFT OUTER JOIN
+            MediaLink ON MediaLink.LinkTableID = 10 AND MediaLink.LinkID = Source.ID LEFT OUTER JOIN
+            MediaFile ON MediaFile.ID = MediaLink.MediaFileID
+        WHERE
+            Fact.LinkTableID = #{table.id} AND
+            Fact.LinkID = #{id}
+
+        UNION ALL
+
+        SELECT
+            Fact.ID AS pkidFact,
+            0 AS pkidSourceLink,
+            null AS stars,
+            null AS just,
+            random() AS pkidCitation,
+            null AS page,
+            null AS comment,
+            null AS footnote,
+            null AS apid,
+            null AS author,
+            'unknown source' AS title,
+            null AS placePub,
+            null AS pub,
+            null AS datePub,
+            null AS callno,
+            null AS source,
+            null AS apidSource,
+            null AS template,
+            MediaFile.ID AS media_pkid,
+            MediaFile.FileName AS media_file
+        FROM
+            Fact LEFT OUTER JOIN
+            MediaLink ON MediaLink.LinkTableID = 2 AND MediaLink.LinkID = Fact.ID LEFT OUTER JOIN
+            MediaFile ON MediaFile.ID = MediaLink.MediaFileID
+        WHERE
+            Fact.LinkTableID = #{table.id} AND
+            Fact.LinkID = #{id} AND
+            MediaFile.ID IS NOT NULL
+
         ORDER BY
             pkidFact
     </select>

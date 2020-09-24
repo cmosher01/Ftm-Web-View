@@ -405,14 +405,14 @@ public class FtmViewerServlet extends HttpServlet {
         fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
         fragPersonPartnerships(indexedDatabase, indexedPerson, body, footnotes);
         e(body, "hr");
-        fragFootnotes(body, footnotes);
+        fragFootnotes(indexedDatabase, body, footnotes);
         e(body, "hr");
         fragFooter(body);
 
         return dom;
     }
 
-    private void fragFootnotes(final Element body, final Footnotes<EventSource> footnotes) {
+    private void fragFootnotes(final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) {
         final int n = footnotes.size();
         if (n <= 0) {
             return;
@@ -422,28 +422,26 @@ public class FtmViewerServlet extends HttpServlet {
         section.setAttribute("class", "footnotes");
         final Element ul = e(section, "ul");
 
-        final String fmtFootnum;
-        if (n < 10) {
-            fmtFootnum = "%1d";
-        } else {
-            fmtFootnum = "%2d";
-        }
-
         for (int i = 1; i <= n; ++i) {
             final Element li = e(ul, "li");
-            li.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
-            final Element spanFootnum = e(li, "span");
-            spanFootnum.setAttribute("class", "footnum");
-            spanFootnum.setTextContent(formatFootnum(i, n));
-            final Element divSource = e(li, "div");
-            final Element divCitation = e(divSource, "div");
-            divCitation.setTextContent(footnotes.getFootnote(i).title());
+
+            final Element footnote = e(li, "div");
+            footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
+            footnote.setAttribute("class", "footnote");
+
+            final Element footnum = e(footnote, "span");
+            footnum.setTextContent(formatFootnum(i, n));
+            footnum.setAttribute("class", "footnum");
+
+            footnotes.getFootnote(i).appendTo(footnote, indexedDatabase);
+
+            // TODO show transcripts each on their own page?
         }
     }
 
     private String formatFootnum(int i, int n) {
         final StringBuilder s = new StringBuilder(2);
-        if (i < 10 && 10 <= n) {
+        if (i < 10 && 10 <= n) { // TODO refactor
             s.append("\u2007");
         }
         s.append(i);
@@ -452,19 +450,19 @@ public class FtmViewerServlet extends HttpServlet {
 
     private void fragEvents(final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<Event> events;
-        final List<EventWithSources> eventsWithSources;
+        final Map<Integer,EventWithSources> mapEventSources;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final EventsMap map = session.getMapper(EventsMap.class);
             events = map.select(link);
-            final EventSourcesMap mapSources = session.getMapper(EventSourcesMap.class);
-            eventsWithSources = mapSources.select(link);
+            mapEventSources =
+                session.
+                getMapper(EventSourcesMap.class).
+                select(link).
+                stream().
+                collect(Collectors.toMap(e -> e.pkidFact, e -> e));
         }
-        final Map<Integer,EventWithSources> mapEventSources =
-            eventsWithSources.
-            stream().
-            collect(Collectors.toMap(e -> e.pkidFact, e -> e));
-//        LOG.debug("loaded events: {}", events);
-//        LOG.debug("loaded citations: {}", eventsWithSources);
+
+        LOG.debug("EventWithSources: {}", mapEventSources);
 
         abbreviatePlacesOf(events);
 
@@ -496,8 +494,10 @@ public class FtmViewerServlet extends HttpServlet {
             if (sources.isPresent() && !sources.get().getSources().isEmpty()) {
                 sources.get().sources.forEach(s -> {
                     final int footnum = footnotes.putFootnote(s);
-                    final Element spanDesc = e(tdDescription, "span");
-                    spanDesc.setTextContent("["+footnum+"]");
+                    final Element footref = e(tdDescription, "a");
+                    footref.setAttribute("class", "footref");
+                    footref.setAttribute("href", "#f"+footnum);
+                    footref.setTextContent("["+footnum+"]");
                 });
             }
         }
@@ -591,8 +591,10 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
                 final Element nature = e(td, "span");
-                nature.setAttribute("class", "nature");
-                nature.setTextContent("(" + parent.nature() + ")");
+                if (parent.nature() != 0) { // TODO parent nature
+                    nature.setAttribute("class", "nature");
+                    nature.setTextContent("(" + parent.nature() + ") ");
+                }
                 final Element a = e(td, "a");
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(parent.name());
@@ -657,10 +659,11 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element tbody = e(table, "tbody");
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
-
-                final Element nature = e(td, "span");
-                nature.setAttribute("class", "nature");
-                nature.setTextContent("(" + partnership.nature() + ")");
+                if (partnership.nature() != 7) { //TODO partnership natures
+                    final Element nature = e(td, "span");
+                    nature.setAttribute("class", "nature");
+                    nature.setTextContent("(" + partnership.nature() + ") ");
+                }
 
                 if (Objects.isNull(uuidLink)) {
                     final Element span = e(td, "span");
@@ -743,6 +746,7 @@ public class FtmViewerServlet extends HttpServlet {
                 toFile().
                 listFiles(ftmDbFilter())).
             map(IndexedDatabase::new).
+            peek(IndexedDatabase::dirMedia). // <-- this peek just logs any "Media" directory names
             collect(Collectors.toList());
     }
 

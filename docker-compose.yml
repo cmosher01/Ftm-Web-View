@@ -5,6 +5,7 @@ services:
     image: 'nginx'
     volumes:
       - './build/libs/nginx.conf:/etc/nginx/nginx.conf:ro'
+      - './example:/srv:ro'
     ports:
       - '60080:80'
 

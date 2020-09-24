@@ -27,6 +27,19 @@ public class XmlUtils {
         return element;
     }
 
+    public static Text t(final Node parent, final String text) {
+        final Document dom;
+        if (parent instanceof Document) {
+            dom = (Document)parent;
+        } else {
+            dom = parent.getOwnerDocument();
+        }
+
+        final Text t = dom.createTextNode(text);
+        parent.appendChild(t);
+        return t;
+    }
+
     public static Document empty() throws ParserConfigurationException {
         return factory(false, Collections.emptyList()).newDocumentBuilder().newDocument();
     }

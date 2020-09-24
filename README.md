@@ -180,39 +180,49 @@ TODO: research:
 * source templates
 
 
-lat/long: N*(180/pi), +:N/E, -:S/W
+lat/long: r*(180/pi), +:N/E, -:S/W
 
 ### metalinks
 
-|parent      |child
-|:---------- |:--------
-|person      |fact
-|relationship|fact
-|fact        |note
-|person      |note
-|fact        |sourcelink
-|fact        |medialink
-|person      |medialink
-|source      |medialink
-|source      |weblink
-|fact        |task
-|task        |taglink
-|mediafile   |taglink
+parent      |child
+---         |---
+person      |fact
+relationship|fact
+fact        |note
+person      |note
+relationship|note
+mediafile   |note
+source      |note
+fact        |sourcelink
+fact        |medialink
+person      |medialink
+relationship|medialink
+source      |medialink
+mastersource|medialink
+source      |weblink
+fact        |task
+task        |taglink
+mediafile   |taglink
 
-|child       |parent
-|:---------- |:--------
-|fact        |medialink
-|fact        |note
-|fact        |sourcelink
-|fact        |task
-|mediafile   |taglink
-|person      |fact
-|person      |medialink
-|person      |note
-|relationship|fact
-|source      |medialink
-|source      |weblink
-|task        |taglink
+parent      |child
+---         |---
+fact        |medialink
+fact        |note
+fact        |sourcelink
+fact        |task
+mediafile   |taglink
+mediafile   |note
+person      |fact
+person      |medialink
+person      |note
+relationship|fact
+relationship|note
+relationship|medialink
+mastersource|medialink
+source      |note
+source      |medialink
+source      |weblink
+task        |taglink
 
 
 

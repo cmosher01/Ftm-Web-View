@@ -70,6 +70,8 @@ public class ContextInitializer implements ServletContextListener {
     }
 
     private static void initMybatisConfig(final Configuration config) {
+        config.setCallSettersOnNulls(true);
+
         config.getTypeHandlerRegistry().register(FtmGuidTypeHandler.class);
         config.getTypeHandlerRegistry().register(RefnTypeHandler.class);
         config.getTypeHandlerRegistry().register(FtmDateTypeHandler.class);
