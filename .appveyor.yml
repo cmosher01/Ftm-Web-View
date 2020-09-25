@@ -6,7 +6,7 @@ build_script:
   - './gradlew build'
 cache:
   - '.gradle'
-  - '~/.gradle'
+  - '/home/appveyor/.gradle'
 artifacts:
   - name: warfile
     path: 'build\libs\*.war'
