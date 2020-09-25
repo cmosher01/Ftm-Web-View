@@ -1,7 +1,6 @@
 #!/bin/sh -e
 
 docker-compose down -v
-./gradlew build
 docker-compose pull
 docker-compose build
 docker-compose up --no-start

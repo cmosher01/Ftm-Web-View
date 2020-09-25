@@ -24,17 +24,3 @@ test {
     useJUnitPlatform()
     jvmArgs += "--enable-preview"
 }
-
-task copyTomcat(type: Copy) {
-    from 'src/main/tomcat'
-    into "${buildDir}/libs"
-}
-
-tasks.assemble.dependsOn tasks.copyTomcat
-
-task copyNginx(type: Copy) {
-    from 'src/main/nginx'
-    into "${buildDir}/libs"
-}
-
-tasks.assemble.dependsOn tasks.copyNginx
