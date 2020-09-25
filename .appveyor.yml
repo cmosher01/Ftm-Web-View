@@ -1,7 +1,6 @@
 ---
 image: Ubuntu
-environment:
-  JAVA_HOME: '/usr/lib/jvm/java-14-openjdk-amd64'
+stack: jdk 14
 build_script:
   - whoami
   - pwd
