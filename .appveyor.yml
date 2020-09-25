@@ -2,12 +2,10 @@
 image: Ubuntu
 stack: jdk 14
 build_script:
-  - whoami
-  - pwd
-  - ls -al
-  - ls -al /usr/lib/jvm/
-  - java -version
-  - ./gradlew build
+  - 'java -version'
+  - './gradlew build'
+cache:
+  - '.gradle'
 artifacts:
   - name: warfile
     path: 'build\libs\*.war'
