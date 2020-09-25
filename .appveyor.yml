@@ -6,6 +6,8 @@ build_script:
   - ls -al
   - ls -al /usr/lib/jvm/
   - java -version
+  - sudo update-alternatives --set java /usr/lib/jvm/java-14-openjdk-amd64/bin/java
+  - java -version
   - ./gradlew build
 artifacts:
   - name: warfile
