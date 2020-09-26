@@ -3,10 +3,25 @@
 <mapper namespace="nu.mine.mosher.gedcom.EventSourcesMap">
     <resultMap id="mapEventWithSources" type="nu.mine.mosher.gedcom.EventWithSources" autoMapping="true">
         <id column="pkidFact" property="pkidFact"/>
-        <collection property="sources" ofType="nu.mine.mosher.gedcom.EventSource" autoMapping="true" notNullColumn="pkidCitation">
+        <collection property="sources" ofType="nu.mine.mosher.gedcom.EventSource" autoMapping="false" notNullColumn="pkidCitation">
             <id property="pkidSourceLink" column="pkidSourceLink"/>
-            <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="true" notNullColumn="pkid">
-                <id property="pkid" column="pkid"/>
+            <result property="stars" column="stars"/>
+            <result property="just" column="just"/>
+            <result property="pkidCitation" column="pkidCitation"/>
+            <result property="page" column="page"/>
+            <result property="comment" column="comment"/>
+            <result property="footnote" column="footnote"/>
+            <result property="apid" column="apid"/>
+            <result property="author" column="author"/>
+            <result property="title" column="title"/>
+            <result property="placePub" column="placePub"/>
+            <result property="pub" column="pub"/>
+            <result property="datePub" column="datePub"/>
+            <result property="callno" column="callno"/>
+            <result property="source" column="source"/>
+            <result property="apidSource" column="apidSource"/>
+            <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="true" notNullColumn="pkidMedia">
+                <id property="pkidMedia" column="pkidMedia"/>
             </collection>
         </collection>
     </resultMap>
@@ -29,8 +44,7 @@
             MasterSource.CallNumber AS callno,
             MasterSource.Comments AS source,
             MasterSource.PID AS apidSource,
-            MasterSource.TemplateData AS template,
-            MediaFile.ID AS media_pkid,
+            MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file
         FROM
             Fact LEFT OUTER JOIN
@@ -63,15 +77,14 @@
             MasterSource.CallNumber AS callno,
             MasterSource.Comments AS source,
             MasterSource.PID AS apidSource,
-            MasterSource.TemplateData AS template,
-            MediaFile.ID AS media_pkid,
+            MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file
         FROM
             Fact LEFT OUTER JOIN
             SourceLink ON (SourceLink.LinkTableID = 2 AND SourceLink.LinkID = Fact.ID) LEFT OUTER JOIN
             Source ON Source.ID = SourceLink.SourceID LEFT OUTER JOIN
             MasterSource ON MasterSource.ID = Source.MasterSourceID LEFT OUTER JOIN
-            MediaLink ON MediaLink.LinkTableID = 10 AND MediaLink.LinkID = Source.ID LEFT OUTER JOIN
+            MediaLink ON MediaLink.LinkTableID = 10 AND MediaLink.LinkID = MasterSource.ID LEFT OUTER JOIN
             MediaFile ON MediaFile.ID = MediaLink.MediaFileID
         WHERE
             Fact.LinkTableID = #{table.id} AND
@@ -97,8 +110,7 @@
             null AS callno,
             null AS source,
             null AS apidSource,
-            null AS template,
-            MediaFile.ID AS media_pkid,
+            MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file
         FROM
             Fact LEFT OUTER JOIN

@@ -5,7 +5,6 @@ package nu.mine.mosher.gedcom;
 import org.slf4j.*;
 import org.w3c.dom.Element;
 
-import java.io.File;
 import java.util.*;
 
 import static nu.mine.mosher.gedcom.StringUtils.*;
@@ -31,11 +30,14 @@ public record EventSource(
     String callno,
     String source,
     String apidSource,
-    String template,
 
     List<MediaFile> media
 ) {
     private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
+
+    public EventSource() {
+        this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>());
+    }
 
     @Override
     public boolean equals(final Object object) {
