@@ -1,0 +1,31 @@
+/* don't start div's on a new line */
+div {
+    display: inline;
+}
+
+/* no bullets on lists */
+ul {
+    list-style-type: none;
+}
+
+/* columnar lists */
+ul.columnar {
+    column-width: 12em;
+}
+
+/* hanging indent for list items */
+li {
+    text-indent: -1em;
+    padding-left: 1em;
+}
+
+/* don't underline or dis-color links */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* but highlight when hovering over links */
+a:hover {
+    background-color: aqua;
+}

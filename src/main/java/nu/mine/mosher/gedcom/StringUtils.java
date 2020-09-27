@@ -4,7 +4,8 @@ import java.util.Objects;
 
 public class StringUtils {
     public static String cleanCitationElement(final String s) {
-        return safe(s).replaceFirst("[.,;:]$","");
+// TODO re-examine this: replaceFirst("[.,;:]$","");
+        return safe(s);
     }
 
     public static boolean is(final String s) {

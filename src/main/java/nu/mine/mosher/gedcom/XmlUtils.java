@@ -1,6 +1,9 @@
 package nu.mine.mosher.gedcom;
 
+import nu.mine.mosher.xml.TeiToXhtml5;
+import org.slf4j.*;
 import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.*;
@@ -9,10 +12,13 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class XmlUtils {
     public static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+
+    private static final Logger LOG = LoggerFactory.getLogger(XmlUtils.class);
 
     public static Element e(final Node parent, final String tag) {
         final Document dom;
@@ -100,5 +106,66 @@ public class XmlUtils {
             transform.setOutputProperty(OutputKeys.INDENT, "yes");
             transform.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
         }
+    }
+
+    public static boolean looksLikeTei(final String s) {
+        return s.startsWith("<bibl") || s.startsWith("<text") || s.contains("<teiHeader");
+    }
+
+    public static boolean teiStyleIfPossible(final String tei, Element divCitation) {
+        if (!looksLikeTei(tei)) {
+            return false;
+        }
+
+        if (tei.startsWith("<bibl")) {
+            return teiStyleIfPossible(wrapTeiBibl(tei), divCitation);
+        }
+
+        if (tei.startsWith("<text")) {
+            return teiStyleIfPossible(wrapTeiText(tei), divCitation);
+        }
+
+        if (tei.contains("<teiHeader")) {
+            try {
+                putTeiThroughPipeline(tei, divCitation);
+            } catch (final Throwable e) {
+                LOG.warn("Error in TEI document; using raw XML instead.", e);
+                divCitation.setTextContent(tei);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void putTeiThroughPipeline(final String tei, final Element divCitation) throws IOException, TransformerException, ParserConfigurationException, SAXException {
+        final BufferedInputStream inXml = new BufferedInputStream(new ByteArrayInputStream(tei.getBytes(StandardCharsets.UTF_8)));
+        TeiToXhtml5.transform(inXml, divCitation);
+    }
+
+    private static String wrapTeiText(final String text) {
+        return
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<TEI xml:lang=\"en\" xmlns=\"http://www.tei-c.org/ns/1.0\">" +
+            "<teiHeader>" +
+            "<fileDesc>" +
+            "<titleStmt/>" +
+            "<publicationStmt/>" +
+            "<sourceDesc/>" +
+            "</fileDesc>" +
+            "</teiHeader>" +
+            text +
+            "</TEI>";
+    }
+
+    private static String wrapTeiBibl(final String bibl) {
+        return wrapTeiText(
+            "<text>" +
+            "<body>" +
+            "<ab>" +
+            bibl +
+            "</ab>" +
+            "</body>" +
+            "</text>");
     }
 }

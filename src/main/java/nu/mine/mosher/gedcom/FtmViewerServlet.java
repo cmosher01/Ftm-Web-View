@@ -278,8 +278,23 @@ public class FtmViewerServlet extends HttpServlet {
     private Document pageIndexDatabases() throws ParserConfigurationException, SQLException {
         final Document dom = XmlUtils.empty();
 
+
+
         final Element html = e(dom, "html");
+
+
+
         final Element head = e(html, "head");
+
+        final Element title = e(head, "title");
+        title.setTextContent("Databases");
+
+        final Element css = e(head, "link");
+        css.setAttribute("rel", "stylesheet");
+        css.setAttribute("href", "./css/layout.css");
+
+
+
         final Element body = e(html, "body");
 
         fragNav(null, null, body);
@@ -288,7 +303,9 @@ public class FtmViewerServlet extends HttpServlet {
         h1.setTextContent("Browse a genealogy database");
 
         final Element ul = e(body, "ul");
-        for (final IndexedDatabase iDb : loadDatabaseIndex()) {
+        final List<IndexedDatabase> dbs = loadDatabaseIndex();
+        dbs.sort((o1, o2) -> o1.file().getName().toLowerCase().compareToIgnoreCase(o2.file().getName().toLowerCase()));
+        for (final IndexedDatabase iDb : dbs) {
             LOG.debug("    {}", iDb.file());
             final Element li = e(ul, "li");
             final Element link = e(li, "a");
@@ -313,10 +330,25 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Document dom = XmlUtils.empty();
 
+
+
+
+
+
         final Element html = e(dom, "html");
+
+
+
         final Element head = e(html, "head");
         final Element title = e(head, "title");
         title.setTextContent(indexedDatabase.file().getName());
+
+        final Element css = e(head, "link");
+        css.setAttribute("rel", "stylesheet");
+        css.setAttribute("href", "./css/layout.css");
+
+
+
         final Element body = e(html, "body");
 
         fragNav(indexedDatabase, null, body);
@@ -325,6 +357,7 @@ public class FtmViewerServlet extends HttpServlet {
         h1.setTextContent(indexedDatabase.file().getName());
 
         final Element ul = e(body, "ul");
+        ul.setAttribute("class", "columnar");
         for (final IndexedPerson indexedPerson : list) {
             final Element li = e(ul, "li");
             final Element ap = e(li, "a");
@@ -389,9 +422,20 @@ public class FtmViewerServlet extends HttpServlet {
         final Document dom = XmlUtils.empty();
 
         final Element html = e(dom, "html");
+
+
+
         final Element head = e(html, "head");
+
         final Element title = e(head, "title");
         title.setTextContent(person.nameWithSlashes());
+
+        final Element css = e(head, "link");
+        css.setAttribute("rel", "stylesheet");
+        css.setAttribute("href", "./css/layout.css");
+
+
+
         final Element body = e(html, "body");
 
         fragNav(indexedDatabase, indexedPerson, body);
@@ -429,9 +473,10 @@ public class FtmViewerServlet extends HttpServlet {
             footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
             footnote.setAttribute("class", "footnote");
 
-            final Element footnum = e(footnote, "span");
-            footnum.setTextContent(formatFootnum(i, n));
+            final Element sup = e(footnote, "sup");
+            final Element footnum = e(sup, "span");
             footnum.setAttribute("class", "footnum");
+            footnum.setTextContent(formatFootnum(i, n));
 
             footnotes.getFootnote(i).appendTo(footnote, indexedDatabase);
 
@@ -494,7 +539,8 @@ public class FtmViewerServlet extends HttpServlet {
             if (sources.isPresent() && !sources.get().getSources().isEmpty()) {
                 sources.get().sources.forEach(s -> {
                     final int footnum = footnotes.putFootnote(s);
-                    final Element footref = e(tdDescription, "a");
+                    final Element sup = e(tdDescription, "sup");
+                    final Element footref = e(sup, "a");
                     footref.setAttribute("class", "footref");
                     footref.setAttribute("href", "#f"+footnum);
                     footref.setTextContent("["+footnum+"]");
@@ -534,17 +580,16 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {
-        final Element header = e(body, "header"); {
-            final Element h1 = e(header, "h1"); {
-                final Element a = e(h1, "a");
-                a.setTextContent(new String(Character.toChars(0x1F517)));
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
+        final Element header = e(body, "header");
+        final Element h1 = e(header, "h1");
+        final Element sup = e(h1, "sup");
+        final Element a = e(sup, "a");
+        a.setTextContent(new String(Character.toChars(0x1F517)));
+        a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
-                final Element personName = e(h1, "span");
-                personName.setAttribute("class", "personName");
-                personName.setTextContent("\u00A0" + person.nameWithSlashes());
-            }
-        }
+        final Element personName = e(h1, "span");
+        personName.setAttribute("class", "personName");
+        personName.setTextContent("\u00A0" + person.nameWithSlashes());
     }
 
     private static void fragFooter(final Element body) {

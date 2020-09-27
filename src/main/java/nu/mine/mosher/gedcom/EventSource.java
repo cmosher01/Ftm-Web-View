@@ -4,7 +4,11 @@ package nu.mine.mosher.gedcom;
 
 import org.slf4j.*;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import java.io.IOException;
 import java.util.*;
 
 import static nu.mine.mosher.gedcom.StringUtils.*;
@@ -52,8 +56,15 @@ public record EventSource(
         return Objects.hash(this.pkidCitation());
     }
 
-    public void appendTo(Element divCitation, IndexedDatabase indexedDatabase) {
-        // TODO use this.page to determine if TEI <bibl> or not
+    public void appendTo(final Element divCitation, final IndexedDatabase indexedDatabase) {
+        final boolean wasTei = teiStyleIfPossible(safe(page), divCitation);
+        if (wasTei) {
+            return;
+        }
+
+
+
+
         // TODO look for URLs
 
         final String author = cleanCitationElement(author());
@@ -114,11 +125,12 @@ public record EventSource(
     }
 
     private static String filterPage(final String page) {
-        return page
-            /* Ancestry.com tends to use semi-colons in its citations */
-            .replace(';', ',')
-            .replaceAll("Page:", "p.")
-            .replaceAll("Family History Library Film", "FHL microfilm")
-            .replaceAll("Family History Film", "FHL microfilm");
+        return page;
+        // TODO smarter way to clean up a page reference
+//            /* Ancestry.com tends to use semi-colons in its citations */
+//            .replace(';', ',')
+//            .replaceAll("Page:", "p.")
+//            .replaceAll("Family History Library Film", "FHL microfilm")
+//            .replaceAll("Family History Film", "FHL microfilm");
     }
 }
