@@ -29,3 +29,15 @@ a {
 a:hover {
     background-color: aqua;
 }
+
+table {
+    border-collapse: collapse;
+}
+
+tbody {
+    vertical-align: baseline;
+}
+
+tr:nth-child(5n) {
+    border-bottom: 1px solid lightgray;
+}

@@ -138,9 +138,9 @@ public class XmlUtils {
         return false;
     }
 
-    private static void putTeiThroughPipeline(final String tei, final Element divCitation) throws IOException, TransformerException, ParserConfigurationException, SAXException {
+    private static void putTeiThroughPipeline(final String tei, final Element element) throws IOException, TransformerException, ParserConfigurationException, SAXException {
         final BufferedInputStream inXml = new BufferedInputStream(new ByteArrayInputStream(tei.getBytes(StandardCharsets.UTF_8)));
-        TeiToXhtml5.transform(inXml, divCitation);
+        TeiToXhtml5.transform(inXml, element);
     }
 
     private static String wrapTeiText(final String text) {

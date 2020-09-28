@@ -523,7 +523,12 @@ public class FtmViewerServlet extends HttpServlet {
             ifPresent(event.date(), monospaced);
             final Element tdPlace = e(tr, "td");
             tdPlace.setAttribute("class", "eventPlace");
-            ifPresent(event.place(), tdPlace);
+            final Place place = event.place();
+            if (place.isBlank()) {
+                ifPresent(null, tdPlace);
+            } else {
+                place.appendTo(tdPlace);
+            }
             final Element tdDescription = e(tr, "td");
             tdDescription.setAttribute("class", "eventDescription");
             final Element spanType = e(tdDescription, "span");
@@ -561,7 +566,7 @@ public class FtmViewerServlet extends HttpServlet {
         Place prev = null;
         for (int i = 0; i < abbrevs.size(); ++i) {
             final Place place = events.get(i).place();
-            if (place.equals(prev) && !place.toString().isBlank()) {
+            if (place.equals(prev) && !place.isBlank()) {
                 place.setDitto();
             } else {
                 place.setDisplay(abbrevs.get(i));
@@ -572,8 +577,7 @@ public class FtmViewerServlet extends HttpServlet {
 
     private static void ifPresent(Object it, Element e) {
         e.setTextContent(
-            Optional.
-            ofNullable(it).
+            Optional.ofNullable(it).
             map(Object::toString).
             filter(s -> !s.isBlank()).
             orElse("\u00a0\u2e3a"));
@@ -589,7 +593,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element personName = e(h1, "span");
         personName.setAttribute("class", "personName");
-        personName.setTextContent("\u00A0" + person.nameWithSlashes());
+        personName.setTextContent(person.nameWithSlashes());
     }
 
     private static void fragFooter(final Element body) {
@@ -679,10 +683,10 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (Objects.isNull(partnerships) || partnerships.isEmpty()) {
             LOG.debug("no partnerships selected");
+            e(body, "hr");
             final Element section = e(body, "section");
             section.setAttribute("class", "partnership");
-            e(section, "hr");
-            final Element table = e(section, "table");
+            final Element table = e(section, "table"); // TODO why is this a table?
             final Element tbody = e(table, "tbody");
             final Element tr = e(tbody, "tr");
             final Element td = e(tr, "td");
@@ -697,10 +701,10 @@ public class FtmViewerServlet extends HttpServlet {
                 if (optRefn.isPresent()) {
                     uuidLink = optRefn.get().uuid();
                 }
+                e(body, "hr");
                 final Element section = e(body, "section");
                 section.setAttribute("class", "partnership");
-                e(section, "hr");
-                final Element table = e(section, "table");
+                final Element table = e(section, "table"); // TODO why is this a table?
                 final Element tbody = e(table, "tbody");
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
@@ -722,6 +726,8 @@ public class FtmViewerServlet extends HttpServlet {
                 fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
 
                 fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
+
+                // TODO: how would it look if children's births were merged with partnership events?
             }
         }
     }
@@ -751,7 +757,7 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element td = e(tr, "td");
                 final Element a = e(td, "a");
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
-                a.setTextContent(child.name());
+                a.setTextContent(child.name()); // TODO birth dates
             }
         }
     }

@@ -56,8 +56,8 @@ public record EventSource(
         return Objects.hash(this.pkidCitation());
     }
 
-    public void appendTo(final Element divCitation, final IndexedDatabase indexedDatabase) {
-        final boolean wasTei = teiStyleIfPossible(safe(page), divCitation);
+    public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) {
+        final boolean wasTei = teiStyleIfPossible(safe(page), parent);
         if (wasTei) {
             return;
         }
@@ -69,16 +69,16 @@ public record EventSource(
 
         final String author = cleanCitationElement(author());
         if (is(author)) {
-            t(divCitation, author);
+            t(parent, author);
         }
 
         final String title = filterTitle(cleanCitationElement(title()));
         if (is(author) && is(title)) {
-            t(divCitation, ", ");
+            t(parent, ", ");
         }
 
         if (is(title)) {
-            final Element cite = e(divCitation, "cite");
+            final Element cite = e(parent, "cite");
             cite.setTextContent(title());
         }
 
@@ -86,29 +86,29 @@ public record EventSource(
         final String pub = no(safe(pub()), "publisher");
         final String date = no(safe(datePub()), "date");
 
-        t(divCitation, String.format(" (%s: %s, %s)", place, pub, date));
+        t(parent, String.format(" (%s: %s, %s)", place, pub, date));
 
         final String page = filterPage(cleanCitationElement(page()));
         if (is(page)) {
-            t(divCitation, ", "+page);
+            t(parent, ", "+page);
         }
 
-        t(divCitation, ".");
+        t(parent, ".");
 
         final Optional<AncestryPersona> optAncestry = AncestryPersona.of(apid());
         if (optAncestry.isPresent()) {
             final AncestryPersona ancestry = optAncestry.get();
             if (ancestry.isLink()) {
-                t(divCitation, " ");
-                ancestry.appendAsAHref(divCitation);
+                t(parent, " ");
+                ancestry.appendAsAHref(parent);
             }
         }
 
         LOG.debug("============================================================ {}    [#media: {}]", title(), media().size());
 
         media().forEach(m -> {
-            t(divCitation, " ");
-            final Element a = e(divCitation, "a");
+            t(parent, " ");
+            final Element a = e(parent, "a");
             final String dirMedia = indexedDatabase.dirMedia();
             final String path = m.file().replaceAll("\\\\", "/").replaceFirst("^~/", dirMedia + "/");
             a.setAttribute("href", "../ftm/"+path);

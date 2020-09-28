@@ -4,16 +4,16 @@ package nu.mine.mosher.gedcom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Element;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static nu.mine.mosher.gedcom.StringUtils.safe;
+import static nu.mine.mosher.gedcom.XmlUtils.e;
 
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class Place {
     private static final Logger LOG =  LoggerFactory.getLogger(Place.class);
 
@@ -21,18 +21,16 @@ public class Place {
     private List<String> display;
     private String sDisplay = "";
     private final String description;
-    private final double radLat;
-    private final double radLon;
-    private final boolean neg;
-    private final int codeStandard;
+    private final Optional<GeoCoords> coords;
+    private final boolean neg; // TODO what is this flag for?
+    private final int codeStandard; // TODO what place-coding standard is this?
     private boolean ditto;
 
-    private Place(List<String> hierarchy, String description, double radLat, double radLon, boolean neg, int codeStandard) {
+    private Place(List<String> hierarchy, String description, Optional<GeoCoords> coords, boolean neg, int codeStandard) {
         this.hierarchy = List.copyOf(hierarchy);
         this.display = new ArrayList<>(hierarchy);
         this.description = description;
-        this.radLat = radLat;
-        this.radLon = radLon;
+        this.coords = coords;
         this.neg = neg;
         this.codeStandard = codeStandard;
     }
@@ -47,28 +45,28 @@ public class Place {
         return place;
     }
 
-    @Override
-    public String toString() {
+    public boolean isDitto() {
+        return this.ditto;
+    }
+
+    public boolean isBlank() {
+        return !this.ditto && this.sDisplay.isBlank() && safe(this.description).isBlank();
+    }
+
+    public void appendTo(final Element parent) {
         if (this.ditto) {
-            return "\u00A0\u201D";
+            parent.setTextContent("\u00A0\u201D");
+        } else {
+            final Element name = e(parent, "span");
+            name.setTextContent(this.sDisplay.isBlank() ? this.description : this.sDisplay);
+
+            if (this.coords.isPresent()) {
+                final Element sup = e(parent, "sup");
+                final Element google = e(sup, "a");
+                google.setAttribute("href", this.coords.get().urlGoogleMaps().toExternalForm());
+                google.setTextContent(new String(Character.toChars(0x1F5FA)));
+            }
         }
-
-        StringBuilder s = new StringBuilder(100);
-        s.append(this.sDisplay.isBlank() ? this.description : this.sDisplay);
-
-        if (this.radLat != 0.0d || this.radLon != 0.0d) {
-            s.append(String.format(" (%09.7f,%09.7f)", this.radLat, this.radLon));
-        }
-
-        if (this.neg) {
-            s.append(" *");
-        }
-
-        if (this.codeStandard != 0) {
-            s.append(String.format(" [%d]", this.codeStandard));
-        }
-
-        return s.toString();
     }
 
     public void setDisplay(final List<String> display) {
@@ -78,10 +76,9 @@ public class Place {
 
     @Override
     public boolean equals(final Object object) {
-        if (!(object instanceof Place)) {
+        if (!(object instanceof Place that)) {
             return false;
         }
-        final Place that = (Place) object;
         return this.hierarchy.equals(that.hierarchy);
     }
 
@@ -97,8 +94,7 @@ public class Place {
     private static class Builder {
         private List<String> hierarchy;
         private String description;
-        private double radLat;
-        private double radLon;
+        private Optional<GeoCoords> coords;
         private boolean neg;
         private int codeStandard;
 
@@ -157,8 +153,7 @@ public class Place {
         }
 
         private void parseCodes(final String[] s) throws NumberFormatException, ArrayIndexOutOfBoundsException {
-            this.radLat = parseRadians(s[s.length-2]);
-            this.radLon = parseRadians(s[s.length-1]);
+            this.coords = GeoCoords.parse(s[s.length-2], s[s.length-1]);
 
             this.codeStandard = parseCode(s[s.length-3]);
 
@@ -169,13 +164,6 @@ public class Place {
             }
         }
 
-        private static double parseRadians(final String s) {
-            if (s.isBlank()) {
-                return 0.0d;
-            }
-            return Double.parseDouble(s);
-        }
-
         private static int parseCode(final String s) {
             if (s.isBlank()) {
                 return 0;
@@ -184,7 +172,7 @@ public class Place {
         }
 
         public Place build() {
-            return new Place(hierarchy, description, radLat, radLon, neg, codeStandard);
+            return new Place(hierarchy, description, coords, neg, codeStandard);
         }
     }
 }

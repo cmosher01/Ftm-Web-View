@@ -25,6 +25,7 @@
             </collection>
         </collection>
     </resultMap>
+    <!-- TODO add WebLinks -->
     <select id="select" resultMap="mapEventWithSources" parameterType="nu.mine.mosher.gedcom.FtmLink">
         SELECT
             Fact.ID AS pkidFact,
