@@ -299,10 +299,17 @@ public class FtmViewerServlet extends HttpServlet {
 
         fragNav(null, null, body);
 
-        final Element h1 = e(body, "h3");
+        e(body, "hr");
+
+        final Element header = e(body, "header");
+        final Element h1 = e(header, "h1");
         h1.setTextContent("Browse a genealogy database");
 
-        final Element ul = e(body, "ul");
+        e(body, "hr");
+
+        final Element section = e(body, "section");
+        section.setAttribute("class", "databases");
+        final Element ul = e(section, "ul");
         final List<IndexedDatabase> dbs = loadDatabaseIndex();
         dbs.sort((o1, o2) -> o1.file().getName().toLowerCase().compareToIgnoreCase(o2.file().getName().toLowerCase()));
         for (final IndexedDatabase iDb : dbs) {
@@ -311,6 +318,8 @@ public class FtmViewerServlet extends HttpServlet {
             link.setAttribute("href", urlQueryTree(iDb));
             link.setTextContent("{"+iDb.file().getName()+"}");
         }
+
+        e(body, "hr");
 
         fragFooter(body);
 
@@ -352,10 +361,18 @@ public class FtmViewerServlet extends HttpServlet {
 
         fragNav(indexedDatabase, null, body);
 
-        final Element h1 = e(body, "h3");
+        e(body, "hr");
+
+        final Element header = e(body, "header");
+        final Element h1 = e(header, "h1");
         h1.setTextContent(indexedDatabase.file().getName());
 
-        final Element ul = e(body, "ul");
+        e(body, "hr");
+
+        final Element section = e(body, "section");
+        section.setAttribute("class", "index");
+
+        final Element ul = e(section, "ul");
         ul.setAttribute("class", "columnar");
         for (final IndexedPerson indexedPerson : list) {
             final Element li = e(ul, "li");
@@ -365,6 +382,8 @@ public class FtmViewerServlet extends HttpServlet {
             ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
             ap.setTextContent(indexedPerson.name());
         }
+
+        e(body, "hr");
 
         fragFooter(body);
 
