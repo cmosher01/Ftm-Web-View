@@ -27,9 +27,8 @@ public class DatabaseUtil {
         return bb.array();
     }
 
+    @SuppressWarnings("ImplicitArrayToString")
     public static byte[] permute(byte[] s) {
-        LOG.trace("original UUID:  {}(byte[]) = [{}]", s.toString(), String.format("%032x", new BigInteger(1, s)));
-
         final byte[] d = new byte[16];
 
         d[0x0] = s[0x3];
@@ -53,7 +52,9 @@ public class DatabaseUtil {
         d[0xe] = s[0xe];
         d[0xf] = s[0xf];
 
-        LOG.trace("permuted UUID:  {}(byte[]) = [{}]", d.toString(), String.format("%032x", new BigInteger(1, d)));
+        LOG.trace("UUID:  {}(byte[]) = [{}]  --->  {}(byte[]) = [{}]",
+            s.toString(), String.format("%032x", new BigInteger(1, s)),
+            d.toString(), String.format("%032x", new BigInteger(1, d)));
 
         return d;
     }

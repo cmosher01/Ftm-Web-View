@@ -35,12 +35,14 @@ public record EventSource(
     String source,
     String apidSource,
 
-    List<MediaFile> media
+    List<MediaFile> media,
+
+    String weblink
 ) {
     private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
 
     public EventSource() {
-        this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>());
+        this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null);
     }
 
     @Override
@@ -95,6 +97,22 @@ public record EventSource(
 
         t(parent, ".");
 
+        media().forEach(m -> {
+            t(parent, " ");
+            final Element a = e(parent, "a");
+            final String dirMedia = indexedDatabase.dirMedia();
+            final String path = m.file().replaceAll("\\\\", "/").replaceFirst("^~/", dirMedia + "/");
+            a.setAttribute("href", "../ftm/"+path);
+            a.setTextContent(new String(Character.toChars(0x1F5BB)));
+        });
+
+        if (!safe(weblink()).isBlank()) {
+            t(parent, " ");
+            final Element a = e(parent, "a");
+            a.setAttribute("href", safe(weblink()));
+            a.setTextContent(new String(Character.toChars(0x1F517)));
+        }
+
         final Optional<AncestryPersona> optAncestry = AncestryPersona.of(apid());
         if (optAncestry.isPresent()) {
             final AncestryPersona ancestry = optAncestry.get();
@@ -103,18 +121,6 @@ public record EventSource(
                 ancestry.appendAsAHref(parent);
             }
         }
-
-        LOG.debug("============================================================ {}    [#media: {}]", title(), media().size());
-
-        media().forEach(m -> {
-            t(parent, " ");
-            final Element a = e(parent, "a");
-            final String dirMedia = indexedDatabase.dirMedia();
-            final String path = m.file().replaceAll("\\\\", "/").replaceFirst("^~/", dirMedia + "/");
-            a.setAttribute("href", "../ftm/"+path);
-            a.setTextContent(new String(Character.toChars(0x1F5BB)));
-
-        });
 
         // TODO: notes
     }

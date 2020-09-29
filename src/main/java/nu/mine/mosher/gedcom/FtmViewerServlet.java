@@ -306,7 +306,6 @@ public class FtmViewerServlet extends HttpServlet {
         final List<IndexedDatabase> dbs = loadDatabaseIndex();
         dbs.sort((o1, o2) -> o1.file().getName().toLowerCase().compareToIgnoreCase(o2.file().getName().toLowerCase()));
         for (final IndexedDatabase iDb : dbs) {
-            LOG.debug("    {}", iDb.file());
             final Element li = e(ul, "li");
             final Element link = e(li, "a");
             link.setAttribute("href", urlQueryTree(iDb));
@@ -360,7 +359,9 @@ public class FtmViewerServlet extends HttpServlet {
         ul.setAttribute("class", "columnar");
         for (final IndexedPerson indexedPerson : list) {
             final Element li = e(ul, "li");
-            final Element ap = e(li, "a");
+            final Element p = e(li, "p");
+            p.setAttribute("class", "hanging");
+            final Element ap = e(p, "a");
             ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
             ap.setTextContent(indexedPerson.name());
         }
@@ -469,9 +470,9 @@ public class FtmViewerServlet extends HttpServlet {
         for (int i = 1; i <= n; ++i) {
             final Element li = e(ul, "li");
 
-            final Element footnote = e(li, "div");
+            final Element footnote = e(li, "p");
+            footnote.setAttribute("class", "indent");
             footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
-            footnote.setAttribute("class", "footnote");
 
             final Element sup = e(footnote, "sup");
             final Element footnum = e(sup, "span");
@@ -507,6 +508,7 @@ public class FtmViewerServlet extends HttpServlet {
                 collect(Collectors.toMap(e -> e.pkidFact, e -> e));
         }
 
+        LOG.debug("Events: {}", events);
         LOG.debug("EventWithSources: {}", mapEventSources);
 
         abbreviatePlacesOf(events);
@@ -519,8 +521,8 @@ public class FtmViewerServlet extends HttpServlet {
             final Element tr = e(tbody, "tr");
             final Element tdDate = e(tr, "td");
             tdDate.setAttribute("class", "eventDate");
-            final Element monospaced = e(tdDate, "code");
-            ifPresent(event.date(), monospaced);
+            final Element span = e(tdDate, "span");
+            ifPresent(event.date(), span);
             final Element tdPlace = e(tr, "td");
             tdPlace.setAttribute("class", "eventPlace");
             final Place place = event.place();
@@ -569,7 +571,7 @@ public class FtmViewerServlet extends HttpServlet {
             if (place.equals(prev) && !place.isBlank()) {
                 place.setDitto();
             } else {
-                place.setDisplay(abbrevs.get(i));
+                place.setAbbreviatedOverride(abbrevs.get(i));
                 prev = place;
             }
         }
@@ -589,6 +591,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Element sup = e(h1, "sup");
         final Element a = e(sup, "a");
         a.setTextContent(new String(Character.toChars(0x1F517)));
+        a.setAttribute("title", "permanent link to this person");
         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
         final Element personName = e(h1, "span");
@@ -686,11 +689,7 @@ public class FtmViewerServlet extends HttpServlet {
             e(body, "hr");
             final Element section = e(body, "section");
             section.setAttribute("class", "partnership");
-            final Element table = e(section, "table"); // TODO why is this a table?
-            final Element tbody = e(table, "tbody");
-            final Element tr = e(tbody, "tr");
-            final Element td = e(tr, "td");
-            final Element span = e(td, "span");
+            final Element span = e(section, "span");
             span.setAttribute("class", "missing");
             span.setTextContent("[no known partnerships (in this database)]");
         } else {
@@ -704,21 +703,19 @@ public class FtmViewerServlet extends HttpServlet {
                 e(body, "hr");
                 final Element section = e(body, "section");
                 section.setAttribute("class", "partnership");
-                final Element table = e(section, "table"); // TODO why is this a table?
-                final Element tbody = e(table, "tbody");
-                final Element tr = e(tbody, "tr");
-                final Element td = e(tr, "td");
                 if (partnership.nature() != 7) { //TODO partnership natures
-                    final Element nature = e(td, "span");
+                    final Element nature = e(section, "span");
                     nature.setAttribute("class", "nature");
                     nature.setTextContent("(" + partnership.nature() + ") ");
                 }
 
                 if (Objects.isNull(uuidLink)) {
-                    final Element span = e(td, "span");
+                    final Element span = e(section, "span");
                     span.setTextContent("[unknown partner]");
                 } else {
-                    final Element a = e(td, "a");
+                    final Element span = e(section, "span");
+                    span.setTextContent("partner: ");
+                    final Element a = e(section, "a");
                     a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                     a.setTextContent(partnership.name());
                 }
@@ -738,7 +735,10 @@ public class FtmViewerServlet extends HttpServlet {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
             children = map.select(idRelationship);
         }
+        final Element ch = e(section, "span");
+        ch.setTextContent("children: ");
         final Element table = e(section, "table");
+        table.setAttribute("class", "indent");
         final Element tbody = e(table, "tbody");
         if (Objects.isNull(children) || children.isEmpty()) {
             final Element tr = e(tbody, "tr");
@@ -792,12 +792,12 @@ public class FtmViewerServlet extends HttpServlet {
         final String sdirDbs = Optional.ofNullable(System.getenv("ftm_dir")).orElse("/srv");
         final Path dirDbs = Path.of(sdirDbs).toAbsolutePath().normalize();
         LOG.debug("Loading FTM data from trees in this directory: {}", dirDbs);
-        return Arrays.stream(
-            dirDbs.
+        return
+            Arrays.stream(
+                dirDbs.
                 toFile().
                 listFiles(ftmDbFilter())).
             map(IndexedDatabase::new).
-            peek(IndexedDatabase::dirMedia). // <-- this peek just logs any "Media" directory names
             collect(Collectors.toList());
     }
 

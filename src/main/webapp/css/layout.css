@@ -3,9 +3,10 @@ div {
     display: inline;
 }
 
-/* no bullets on lists */
+/* unordered lists: no bullets, no padding start */
 ul {
     list-style-type: none;
+    padding-inline-start: unset;
 }
 
 /* columnar lists */
@@ -13,21 +14,20 @@ ul.columnar {
     column-width: 12em;
 }
 
-/* hanging indent for list items */
-li {
-    text-indent: -1em;
-    padding-left: 1em;
-}
-
 /* don't underline or dis-color links */
 a {
-    text-decoration: none;
-    color: inherit;
+    text-decoration: unset;
+    color: unset;
 }
 
 /* but highlight when hovering over links */
 a:hover {
     background-color: aqua;
+}
+
+/* highlight targets */
+:target {
+    background-color: yellow;
 }
 
 table {
@@ -38,6 +38,22 @@ tbody {
     vertical-align: baseline;
 }
 
+/* make rows in table easier to follow when reading across the page */
 tr:nth-child(5n) {
     border-bottom: 1px solid lightgray;
+}
+
+/* paragraph: indent, and remove block margins */
+p {
+    margin-block-start: unset;
+    margin-block-end: unset;
+}
+
+.hanging {
+    text-indent: -2em;
+    padding-left: 2em;
+}
+
+.indent {
+    text-indent: 2em;
 }

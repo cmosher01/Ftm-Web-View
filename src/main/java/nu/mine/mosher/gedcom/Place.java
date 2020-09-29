@@ -1,12 +1,11 @@
 package nu.mine.mosher.gedcom;
 
 
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.w3c.dom.Element;
 
 import java.util.*;
+import java.util.regex.*;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.StringUtils.safe;
@@ -18,21 +17,42 @@ public class Place {
     private static final Logger LOG =  LoggerFactory.getLogger(Place.class);
 
     private final List<String> hierarchy;
-    private List<String> display;
-    private String sDisplay = "";
     private final String description;
+
     private final Optional<GeoCoords> coords;
     private final boolean neg; // TODO what is this flag for?
     private final int codeStandard; // TODO what place-coding standard is this?
+
+    private String abbreviatedOverride;
     private boolean ditto;
 
     private Place(List<String> hierarchy, String description, Optional<GeoCoords> coords, boolean neg, int codeStandard) {
-        this.hierarchy = List.copyOf(hierarchy);
-        this.display = new ArrayList<>(hierarchy);
+        this.hierarchy = hierarchy;
         this.description = description;
         this.coords = coords;
         this.neg = neg;
         this.codeStandard = codeStandard;
+        this.abbreviatedOverride = "";
+
+    }
+
+    @Override
+    public String toString() {
+        return "Place{" +
+            "hierarchy=[" + dumpHierarchy() + ']' +
+            ", description=\"" + description + '\"' +
+            ", codeStandard=" + codeStandard +
+            ", coords=" + coords +
+            '}';
+    }
+
+    private String dumpHierarchy() {
+        return
+            this.
+            hierarchy.
+            stream().
+            map(p -> "\""+p+"\"").
+            collect(Collectors.joining(","));
     }
 
     public List<String> getHierarchy() {
@@ -45,12 +65,8 @@ public class Place {
         return place;
     }
 
-    public boolean isDitto() {
-        return this.ditto;
-    }
-
     public boolean isBlank() {
-        return !this.ditto && this.sDisplay.isBlank() && safe(this.description).isBlank();
+        return !this.ditto && /*this.sDisplay.isBlank() &&*/ safe(this.description).isBlank();
     }
 
     public void appendTo(final Element parent) {
@@ -58,7 +74,7 @@ public class Place {
             parent.setTextContent("\u00A0\u201D");
         } else {
             final Element name = e(parent, "span");
-            name.setTextContent(this.sDisplay.isBlank() ? this.description : this.sDisplay);
+            name.setTextContent(this.abbreviatedOverride.isBlank() ? this.description : this.abbreviatedOverride);
 
             if (this.coords.isPresent()) {
                 final Element sup = e(parent, "sup");
@@ -69,9 +85,8 @@ public class Place {
         }
     }
 
-    public void setDisplay(final List<String> display) {
-        this.display = new ArrayList<>(display);
-        this.sDisplay = String.join(", ", this.display);
+    public void setAbbreviatedOverride(final List<String> parts) {
+        this.abbreviatedOverride = String.join(", ", parts);
     }
 
     @Override
@@ -91,71 +106,155 @@ public class Place {
         this.ditto = true;
     }
 
+
+
+
+
+
+
+
+
+
+
+
     private static class Builder {
-        private List<String> hierarchy;
         private String description;
-        private Optional<GeoCoords> coords;
+        private Optional<GeoCoords> coords = Optional.empty();
         private boolean neg;
         private int codeStandard;
+        private final  List<String> hierarchy = new ArrayList<>(5);
 
         public Builder(final String description) {
-            // default value if any parsing fails:
-            this.description = String.format("\u201C%s\u201D", description);
-            this.hierarchy = Collections.emptyList();
-
-            try {
-                parseDescription(description);
-            } catch (final Throwable e) {
-                LOG.warn("unknown place name format for {}", description, e);
-            }
-        }
-
-        private void parseDescription(String description) {
             if (description.isBlank()) {
                 this.description = "";
-                return;
-            }
-
-            // TODO: /another place / with slashes | and  bars, but, resolved, in///Connecticut/USA/-9//
-            // TODO: /Place, Name w/some slash/es | and, verical | bars|//
-            if (description.contains("|")) {
-                /*
-                        /Hamilton, Madison, New York, USA|/0.7474722/-1.318502
-                 */
-                final String[] s = description.split("\\|", 2);
-                parseCodes(s[1].split("/", -1));
-                String d = s[0];
-                if (d.startsWith("/")) {
-                    d = d.substring(1);
-                }
-                this.description = d;
             } else {
-                /*
-                        /Room 401, Flint Hall, Syracuse University/Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
-                 */
-                final String[] s = description.split("/", -1);
-                parseCodes(s);
-                final StringBuilder sb = new StringBuilder(100);
-                for (int i = 0; i < s.length-3; ++i) {
-                    if (!s[i].isBlank()) {
-                        if (0 < sb.length()) {
-                            sb.append(", ");
-                        }
-                        sb.append(s[i]);
-                    }
+                // default value if any parsing fails:
+                this.description = String.format("\u201C%s\u201D", description);
+                // try to parse
+                try {
+                    parseDescription(description);
+                } catch (final Throwable e) {
+                    LOG.warn("unknown place name format for {}", description, e);
                 }
-                this.description = sb.toString();
             }
-            this.hierarchy =
-                Arrays.stream(this.description.split(",")).
-                map(String::trim).
-                collect(Collectors.toUnmodifiableList());
         }
 
-        private void parseCodes(final String[] s) throws NumberFormatException, ArrayIndexOutOfBoundsException {
-            this.coords = GeoCoords.parse(s[s.length-2], s[s.length-1]);
+        public Place build() {
+            return new Place(hierarchy, description, coords, neg, codeStandard);
+        }
 
-            this.codeStandard = parseCode(s[s.length-3]);
+
+        /*
+        Family Tree Maker does some encoding within the place name column.
+
+        There are two main types of place names.
+
+        Both types start with a slash.
+
+        Both types end with
+
+               ... [CODE] / [LATITUDE] / [LONGITUDE]
+
+        where CODE could be negative (which is obviously a flag that represents something), and
+        LATITUDE/LONGITUDE are coordinates, in radians.
+
+        Immediately preceding this will be either a slash or a vertical bar, which
+        is used as an indicator of the main type of the place name, and dictates the
+        format of the rest of the string preceding that:
+
+
+        "/" Slashed place names are in this format:
+
+            / [p0] / [p1] / [p2] / [p3] / [p4] / ...
+
+        where p0 through p4 are place names in a hierarchy.
+        The parts of "resolved" places are at the end.
+
+
+        "|" Vertical bar place names are in this format:
+
+            / [name] | ...
+
+         */
+
+
+        /*
+                /Hamilton, Madison, New York, USA|/0.7474722/-1.318502
+                /Place, Name w/some slash/es | and, vertical | bars|//
+         */
+        private static final Pattern FTM_PLACE_WITH_VERTICALBAR = Pattern.compile("^/(?<name>.*)\\|(?<code>[^/|]*?)/(?<lat>[^/|]*?)/(?<lon>[^/|]*?)$");
+
+        /*
+                /Room 401, Flint Hall, Syracuse University/Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
+                /another place / with slashes | and  bars, but, resolved, in///Connecticut/USA/-9//
+
+            Use the first capture group ("name") from the first pattern as input to the second pattern:
+        */
+        private static final Pattern FTM_PLACE_WITH_SLASH = Pattern.compile("^/(?<name>.*)/(?<code>[^/|]*?)/(?<lat>[^/|]*?)/(?<lon>[^/|]*?)$");
+
+        private static final Pattern FTM_PLACE_HIERARCHICAL = Pattern.compile("^(?<p0>.*)/(?<p1>[^/|]*?)/(?<p2>[^/|]*?)/(?<p3>[^/|]*?)/(?<p4>[^/|]*?)$");
+
+
+        private void parseDescription(final String description) {
+            //-------------------------------------------------------
+            {
+                final Matcher withBar = FTM_PLACE_WITH_VERTICALBAR.matcher(description);
+                if (withBar.matches()) {
+                    setCoords(withBar.group("lat"), withBar.group("lon"));
+                    setCode(withBar.group("code"));
+
+                    parseAndAddHierarchy(withBar.group("name"));
+
+                    buildDescription();
+                    return;
+                }
+            }
+            //-------------------------------------------------------
+            {
+                final Matcher withSlash = FTM_PLACE_WITH_SLASH.matcher(description);
+                if (withSlash.matches()) {
+                    setCoords(withSlash.group("lat"), withSlash.group("lon"));
+                    setCode(withSlash.group("code"));
+
+                    final Matcher hier = FTM_PLACE_HIERARCHICAL.matcher(withSlash.group("name"));
+                    if (hier.matches()) {
+                        parseAndAddHierarchy(hier.group("p0"));
+                        addHierarchy(hier.group("p1"));
+                        addHierarchy(hier.group("p2"));
+                        addHierarchy(hier.group("p3"));
+                        addHierarchy(hier.group("p4"));
+                    } else {
+                        parseAndAddHierarchy(withSlash.group("name"));
+                    }
+
+                    buildDescription();
+                    return;
+                }
+            }
+        }
+
+        private void buildDescription() {
+            this.description = String.join(", ", this.hierarchy);
+        }
+
+        private void parseAndAddHierarchy(final String csvParts) {
+            Arrays.stream(csvParts.split(",")).
+                map(String::trim).
+                forEach(this::addHierarchy);
+        }
+
+        private void addHierarchy(String part) {
+            if (!part.isBlank()) {
+                this.hierarchy.add(part);
+            }
+        }
+
+        private void setCoords(final String lat, final String lon) {
+            this.coords = GeoCoords.parse(lat, lon);
+        }
+
+        private void setCode(final String code) {
+            this.codeStandard = parseCode(code);
 
             this.neg = false;
             if (this.codeStandard < 0) {
@@ -168,11 +267,12 @@ public class Place {
             if (s.isBlank()) {
                 return 0;
             }
-            return Integer.parseInt(s);
-        }
-
-        public Place build() {
-            return new Place(hierarchy, description, coords, neg, codeStandard);
+            try {
+                return Integer.parseInt(s);
+            } catch (final Throwable e) {
+                LOG.warn("Unknown format for FTM place code: {}", s, e);
+                return 0;
+            }
         }
     }
 }
