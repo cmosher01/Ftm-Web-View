@@ -281,6 +281,7 @@ public class FtmViewerServlet extends HttpServlet {
 
 
         final Element html = e(dom, "html");
+        html.setAttribute("class", "fontFeatures unicodeWebFonts solarizedLight");
 
 
 
@@ -344,6 +345,7 @@ public class FtmViewerServlet extends HttpServlet {
 
 
         final Element html = e(dom, "html");
+        html.setAttribute("class", "fontFeatures unicodeWebFonts solarizedLight");
 
 
 
@@ -442,6 +444,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Document dom = XmlUtils.empty();
 
         final Element html = e(dom, "html");
+        html.setAttribute("class", "fontFeatures unicodeWebFonts solarizedLight");
 
 
 
@@ -483,7 +486,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "footnotes");
+        section.setAttribute("class", "footnotes smaller blockindent");
         final Element ul = e(section, "ul");
 
         for (int i = 1; i <= n; ++i) {
@@ -661,8 +664,8 @@ public class FtmViewerServlet extends HttpServlet {
                 }
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
-                final Element nature = e(td, "span");
                 if (parent.nature() != 0) { // TODO parent nature
+                    final Element nature = e(td, "span");
                     nature.setAttribute("class", "nature");
                     nature.setTextContent("(" + parent.nature() + ") ");
                 }

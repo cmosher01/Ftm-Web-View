@@ -1,3 +1,7 @@
+@import url("https://mosher.mine.nu/uniwebfonts/css/solarized.css");
+@import url("https://mosher.mine.nu/uniwebfonts/css/fonts.css");
+@import url("https://mosher.mine.nu/tei/tei.css");
+
 /* don't start div's on a new line */
 div {
     display: inline;
@@ -22,12 +26,14 @@ a {
 
 /* but highlight when hovering over links */
 a:hover {
-    background-color: aqua;
+    color: var(--sol-base01);
+    background-color: #d4398240 /*solarized magenta + alpha*/;
 }
 
 /* highlight targets */
 :target {
-    background-color: yellow;
+    color: var(--sol-base03);
+    background-color: var(--sol-base2);
 }
 
 table {
@@ -40,13 +46,17 @@ tbody {
 
 /* make rows in table easier to follow when reading across the page */
 tr:nth-child(5n) {
-    border-bottom: 1px solid lightgray;
+    border-bottom: 1px dotted var(--sol-base1);
 }
 
-/* paragraph: indent, and remove block margins */
+/* paragraph: remove block margins */
 p {
     margin-block-start: unset;
     margin-block-end: unset;
+}
+
+.smaller {
+    font-size: smaller;
 }
 
 .hanging {
@@ -56,4 +66,8 @@ p {
 
 .indent {
     text-indent: 2em;
+}
+
+.blockindent {
+    padding-left: 4em;
 }

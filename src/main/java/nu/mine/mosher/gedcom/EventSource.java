@@ -4,11 +4,7 @@ package nu.mine.mosher.gedcom;
 
 import org.slf4j.*;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
-import java.io.IOException;
 import java.util.*;
 
 import static nu.mine.mosher.gedcom.StringUtils.*;
@@ -17,7 +13,7 @@ import static nu.mine.mosher.gedcom.XmlUtils.*;
 
 public record EventSource(
     int pkidSourceLink,
-    Integer stars,
+    Integer stars, // TODO stars/justification (and/or calcflags)
     String just,
 
     Integer pkidCitation,

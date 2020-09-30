@@ -80,7 +80,7 @@ public class Place {
                 final Element sup = e(parent, "sup");
                 final Element google = e(sup, "a");
                 google.setAttribute("href", this.coords.get().urlGoogleMaps().toExternalForm());
-                google.setTextContent(new String(Character.toChars(0x1F5FA)));
+                google.setTextContent(new String(Character.toChars(0x1F30D)));
             }
         }
     }
