@@ -7,6 +7,7 @@
             <idArg column="person_id" javaType="java.util.UUID"/>
             <arg column="person_name" javaType="String"/>
             <arg column="nature" javaType="_int"/>
+            <arg column="dateSort" javaType="nu.mine.mosher.gedcom.Day"/>
         </constructor>
     </resultMap>
 
@@ -20,7 +21,7 @@
             Person.PersonGUID AS person_id,
             Person.FullNameReversed AS person_name,
             Relationship.Nature AS nature,
-            (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS datesort
+            (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS dateSort
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->
@@ -39,7 +40,7 @@
         Person.PersonGUID AS person_id,
         Person.FullNameReversed AS person_name,
         Relationship.Nature AS nature,
-        (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS datesort
+        (SELECT MIN(Date) FROM Fact WHERE Fact.LinkID = Relationship.ID AND Fact.LinkTableID = 7) AS dateSort
 <!--            Person.BirthDate AS ftmdate_birth,-->
 <!--            Relationship.Private AS prvt,-->
 <!--            Relationship.RelType-->

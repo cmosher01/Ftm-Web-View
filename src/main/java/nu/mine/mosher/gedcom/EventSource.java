@@ -55,11 +55,23 @@ public record EventSource(
     }
 
     public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) {
-        final boolean wasTei = teiStyleIfPossible(safe(page), parent);
+        // TEI check first (either in footnote-override, or page)
+        boolean wasTei;
+        wasTei = teiStyleIfPossible(safe(footnote), parent);
+        if (wasTei) {
+            return;
+        }
+        wasTei = teiStyleIfPossible(safe(page), parent);
         if (wasTei) {
             return;
         }
 
+        // footnote-override
+        if (!safe(footnote()).isBlank()) {
+            final Element t = e(parent, "span");
+            t.setTextContent(safe(footnote()));
+            return;
+        }
 
 
 
@@ -75,14 +87,20 @@ public record EventSource(
             t(parent, ", ");
         }
 
-        if (is(title)) {
-            final Element cite = e(parent, "cite");
-            cite.setTextContent(title());
-        }
-
         final String place = no(safe(placePub()), "place");
         final String pub = no(safe(pub()), "publisher");
         final String date = no(safe(datePub()), "date");
+
+        if (is(title)) {
+            final boolean published = !safe(pub()).isBlank();
+            if (published) {
+                final Element cite = e(parent, "cite");
+                cite.setTextContent(title());
+            } else {
+                final Element unpub = e(parent, "span");
+                unpub.setTextContent("\u201C"+title()+"\u201D");
+            }
+        }
 
         t(parent, String.format(" (%s: %s, %s)", place, pub, date));
 

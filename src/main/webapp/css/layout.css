@@ -26,8 +26,8 @@ a {
 
 /* but highlight when hovering over links */
 a:hover {
-    color: var(--sol-base01);
-    background-color: #d4398240 /*solarized magenta + alpha*/;
+    color: var(--sol-base02);
+    background-color: var(--sol-cyan);
 }
 
 /* highlight targets */
@@ -55,6 +55,7 @@ p {
     margin-block-end: unset;
 }
 
+/* some text styles */
 .smaller {
     font-size: smaller;
 }
@@ -70,4 +71,34 @@ p {
 
 .blockindent {
     padding-left: 4em;
+}
+
+/* float styles for two-column layout */
+.left {
+    float: left;
+    text-align: left;
+    width: 49%;
+}
+
+.right {
+    float: right;
+    text-align: right;
+    width: 49%;
+}
+
+.clear:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+/*
+    minimal styling for Google's "Sign in" button
+    (Google's are currently blocked by CSP.)
+*/
+.g-signin2,
+#signout {
+    border: 1px solid gray;
+    padding: 3px;
+    cursor: pointer;
 }

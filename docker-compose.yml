@@ -13,5 +13,6 @@ services:
     build: './'
     environment:
       ftm_dir: '/srv'
+      CLIENT_ID: "${CLIENT_ID}"
     volumes:
       - './example:/srv:ro'

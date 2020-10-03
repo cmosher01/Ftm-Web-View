@@ -3,6 +3,8 @@ package nu.mine.mosher.gedcom;
 
 import org.slf4j.*;
 
+import java.util.Objects;
+
 import static nu.mine.mosher.gedcom.StringUtils.safe;
 
 public record Event(int pkid, Day date, Place place, String type, String description) implements Comparable<Event> {
@@ -29,5 +31,9 @@ public record Event(int pkid, Day date, Place place, String type, String descrip
             LOG.warn("invalid value for sex type: {}", description, e);
         }
         return "[unknown]";
+    }
+
+    public boolean isRecent() {
+        return Objects.nonNull(date) && date.isRecent();
     }
 }

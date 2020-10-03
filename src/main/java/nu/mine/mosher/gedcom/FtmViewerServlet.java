@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
+import static nu.mine.mosher.gedcom.StringUtils.safe;
 import static nu.mine.mosher.gedcom.XmlUtils.XHTML_NAMESPACE;
 import static nu.mine.mosher.gedcom.XmlUtils.e;
 
@@ -75,7 +76,7 @@ public class FtmViewerServlet extends HttpServlet {
         if (Objects.isNull(cookies) || cookies.length <= 0) {
             LOG.debug("The request had no cookies attached.");
         } else {
-            Arrays.stream(cookies).forEach(c -> LOG.debug("cookie: {}: {}={}", c.getPath(), c.getName(), c.getValue()));
+            Arrays.stream(cookies).forEach(c -> LOG.debug("cookie: {}: {}={}", Optional.ofNullable(c.getPath()).orElse("[no-path]"), c.getName(), c.getValue()));
         }
         final Map<String, String[]> parameters = request.getParameterMap();
         if (Objects.isNull(parameters) || parameters.isEmpty()) {
@@ -122,13 +123,18 @@ public class FtmViewerServlet extends HttpServlet {
 
 
 
+        final Auth.RbacRole role = Auth.auth(request);
+        LOG.debug("Resulting role: {}", role);
+
+
+
         Optional<Document> dom = Optional.empty();
 
         if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(indexedDatabase.get(), optFiltered.get()));
+                    dom = Optional.of(pagePerson(role, indexedDatabase.get(), optFiltered.get()));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                     if (indexedDatabaseOther.isPresent()) {
@@ -148,7 +154,7 @@ public class FtmViewerServlet extends HttpServlet {
             }
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                dom = Optional.of(pageIndexPeople(indexedDatabase.get()));
+                dom = Optional.of(pageIndexPeople(role, indexedDatabase.get()));
             } else {
                 LOG.info("tree does not currently exist");
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -162,7 +168,7 @@ public class FtmViewerServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } else {
-            dom = Optional.of(pageIndexDatabases());
+            dom = Optional.of(pageIndexDatabases(role));
         }
 
         return dom;
@@ -275,7 +281,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private Document pageIndexDatabases() throws ParserConfigurationException, SQLException {
+    private Document pageIndexDatabases(final Auth.RbacRole role) throws ParserConfigurationException, SQLException {
         final Document dom = XmlUtils.empty();
 
 
@@ -294,11 +300,11 @@ public class FtmViewerServlet extends HttpServlet {
         css.setAttribute("rel", "stylesheet");
         css.setAttribute("href", "./css/layout.css");
 
-
+        addAuthHead(head);
 
         final Element body = e(html, "body");
 
-        fragNav(null, null, body);
+        fragNav(role, null, null, body);
 
         e(body, "hr");
 
@@ -327,7 +333,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private Document pageIndexPeople(final IndexedDatabase indexedDatabase) throws ParserConfigurationException, SQLException {
+    private Document pageIndexPeople(Auth.RbacRole role, final IndexedDatabase indexedDatabase) throws ParserConfigurationException, SQLException {
         final List<IndexedPerson> list;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
@@ -357,11 +363,12 @@ public class FtmViewerServlet extends HttpServlet {
         css.setAttribute("rel", "stylesheet");
         css.setAttribute("href", "./css/layout.css");
 
+        addAuthHead(head);
 
 
         final Element body = e(html, "body");
 
-        fragNav(indexedDatabase, null, body);
+        fragNav(role, indexedDatabase, null, body);
 
         e(body, "hr");
 
@@ -377,12 +384,14 @@ public class FtmViewerServlet extends HttpServlet {
         final Element ul = e(section, "ul");
         ul.setAttribute("class", "columnar");
         for (final IndexedPerson indexedPerson : list) {
-            final Element li = e(ul, "li");
-            final Element p = e(li, "p");
-            p.setAttribute("class", "hanging");
-            final Element ap = e(p, "a");
-            ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
-            ap.setTextContent(indexedPerson.name());
+            if (role.authorized() || !indexedPerson.isRecent()) {
+                final Element li = e(ul, "li");
+                final Element p = e(li, "p");
+                p.setAttribute("class", "hanging");
+                final Element ap = e(p, "a");
+                ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
+                ap.setTextContent(indexedPerson.name());
+            }
         }
 
         e(body, "hr");
@@ -392,18 +401,69 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private void fragNav(final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException {
+    private void addAuthHead(final Element head) {
+        Element e;
+        e = e(head, "meta");
+        e.setAttribute("name", "google-signin-client_id");
+        e.setAttribute("content", System.getenv("CLIENT_ID"));
+        e = e(head, "script");
+        e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js");
+        e = e(head, "script");
+        e.setAttribute("src", "https://apis.google.com/js/platform.js?onload=renderButton");
+        e.setAttribute("async", "async");
+        e.setAttribute("defer", "defer");
+        e = e(head, "script");
+        e.setAttribute("src", "./js/google.js");
+    }
+
+    private void addAuthNav(final Auth.RbacRole role, final Element nav) {
+        Element e;
+
+        // sign-in button
+        e = e(nav, "a");
+        e.setAttribute("id", "gedcom-web-view-google-signin");
+        e.setAttribute("class", "g-signin2");
+
+        if (role.loggedIn()) {
+            e = e(nav, "span");
+            e.setTextContent(" ");
+
+            // signed-in user's email
+            e = e(nav, "small");
+            e.setTextContent(role.email());
+        }
+
+        e = e(nav, "span");
+        e.setTextContent(" ");
+
+        // sign-out button
+        e = e(nav, "a");
+        e.setAttribute("id", "signout");
+        e.setTextContent("Sign\u00A0out");
+    }
+
+    private void fragNav(Auth.RbacRole role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException {
         final Element header = e(parent, "header");
         final Element nav = e(header, "nav");
-        final Element a = e(nav, "a");
+        nav.setAttribute("class", "clear");
+
+        final Element divL = e(nav, "div");
+        divL.setAttribute("class", "left");
+
+        Element sp = e(divL, "span");
+        sp.setTextContent(" ");
+        final Element a = e(divL, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
-        nav.appendChild(nav.getOwnerDocument().createTextNode(" "));
 
         if (Objects.nonNull(indexedDatabase)) {
-            final Element a2 = e(nav, "a");
+            sp = e(divL, "span");
+            sp.setTextContent(" ");
+            final Element a2 = e(divL, "a");
             a2.setAttribute("href", urlQueryTree(indexedDatabase));
-            a2.setTextContent("{" + indexedDatabase.file().getName() + "} ");
+            a2.setTextContent("{" + indexedDatabase.file().getName() + "}");
+            sp = e(divL, "span");
+            sp.setTextContent(" ");
         }
 
         LOG.debug("source database: {}", indexedDatabase);
@@ -419,18 +479,29 @@ public class FtmViewerServlet extends HttpServlet {
                     if (optPerson.isPresent()) {
                         LOG.debug("Found person {} in alternate tree {}", optPerson.get(), db);
                         if (!labeled) {
-                            final Element span = e(nav, "span");
-                            span.setTextContent("see also: ");
+                            final Element span = e(divL, "span");
+                            span.setTextContent("see also:");
                             labeled = true;
                         }
-                        final Element a3 = e(nav, "a");
+                        sp = e(divL, "span");
+                        sp.setTextContent(" ");
+                        final Element a3 = e(divL, "a");
                         a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
-                        a3.setTextContent("{" + db.file().getName() + "} ");
+                        a3.setTextContent("{" + db.file().getName() + "}");
+                        sp = e(divL, "span");
+                        sp.setTextContent(" ");
                     }
                 }
             }
 
         }
+
+
+
+        final Element divR = e(nav, "div");
+        divR.setAttribute("class", "right");
+
+        addAuthNav(role, divR);
     }
 
     private SqlSession openSessionFor(final Connection connection) {
@@ -438,7 +509,7 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException {
+    private Document pagePerson(Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
 
         final Document dom = XmlUtils.empty();
@@ -457,11 +528,11 @@ public class FtmViewerServlet extends HttpServlet {
         css.setAttribute("rel", "stylesheet");
         css.setAttribute("href", "./css/layout.css");
 
-
+        addAuthHead(head);
 
         final Element body = e(html, "body");
 
-        fragNav(indexedDatabase, indexedPerson, body);
+        fragNav(role, indexedDatabase, indexedPerson, body);
         e(body, "hr");
         fragPersonParents(indexedDatabase, indexedPerson, body);
         e(body, "hr");
@@ -469,8 +540,8 @@ public class FtmViewerServlet extends HttpServlet {
         e(body, "hr");
 
         final Footnotes<EventSource> footnotes = new Footnotes<>();
-        fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
-        fragPersonPartnerships(indexedDatabase, indexedPerson, body, footnotes);
+        fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
+        fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
         e(body, "hr");
         fragFootnotes(indexedDatabase, body, footnotes);
         e(body, "hr");
@@ -516,7 +587,7 @@ public class FtmViewerServlet extends HttpServlet {
         return s.toString();
     }
 
-    private void fragEvents(final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
+    private void fragEvents(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<Event> events;
         final Map<Integer,EventWithSources> mapEventSources;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
@@ -540,6 +611,12 @@ public class FtmViewerServlet extends HttpServlet {
         final Element table = e(section, "table");
         final Element tbody = e(table, "tbody");
         for (final Event event : events) {
+            fragEvent(role, footnotes, mapEventSources, tbody, event);
+        }
+    }
+
+    private void fragEvent(final Auth.RbacRole role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) {
+        if (role.authorized() || !event.isRecent()) {
             final Element tr = e(tbody, "tr");
             final Element tdDate = e(tr, "td");
             tdDate.setAttribute("class", "eventDate");
@@ -571,8 +648,8 @@ public class FtmViewerServlet extends HttpServlet {
                     final Element sup = e(tdDescription, "sup");
                     final Element footref = e(sup, "a");
                     footref.setAttribute("class", "footref");
-                    footref.setAttribute("href", "#f"+footnum);
-                    footref.setTextContent("["+footnum+"]");
+                    footref.setAttribute("href", "#f" + footnum);
+                    footref.setTextContent("[" + footnum + "]");
                 });
             }
         }
@@ -626,7 +703,7 @@ public class FtmViewerServlet extends HttpServlet {
         final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
         final Element time = e(footer, "small");
-        time.setTextContent("Page generated "+sNow);
+        time.setTextContent("Page generated "+sNow+" .");
     }
 
     private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
@@ -698,7 +775,7 @@ public class FtmViewerServlet extends HttpServlet {
         return r;
     }
 
-    private void fragPersonPartnerships(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
+    private void fragPersonPartnerships(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<PersonPartnership> partnerships;
 
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
@@ -717,36 +794,38 @@ public class FtmViewerServlet extends HttpServlet {
         } else {
             LOG.debug("partnerships selected: {}", partnerships);
             for (final PersonPartnership partnership : partnerships) {
-                UUID uuidLink= partnership.idPerson();
-                final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
-                if (optRefn.isPresent()) {
-                    uuidLink = optRefn.get().uuid();
+                if (role.authorized() || !partnership.isRecent()) {
+                    UUID uuidLink = partnership.idPerson();
+                    final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
+                    if (optRefn.isPresent()) {
+                        uuidLink = optRefn.get().uuid();
+                    }
+                    e(body, "hr");
+                    final Element section = e(body, "section");
+                    section.setAttribute("class", "partnership");
+                    if (partnership.nature() != 7) { //TODO partnership natures
+                        final Element nature = e(section, "span");
+                        nature.setAttribute("class", "nature");
+                        nature.setTextContent("(" + partnership.nature() + ") ");
+                    }
+
+                    if (Objects.isNull(uuidLink)) {
+                        final Element span = e(section, "span");
+                        span.setTextContent("[unknown partner]");
+                    } else {
+                        final Element span = e(section, "span");
+                        span.setTextContent("partner: ");
+                        final Element a = e(section, "a");
+                        a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
+                        a.setTextContent(partnership.name());
+                    }
+
+                    fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
+
+                    fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
+
+                    // TODO: how would it look if children's births were merged with partnership events?
                 }
-                e(body, "hr");
-                final Element section = e(body, "section");
-                section.setAttribute("class", "partnership");
-                if (partnership.nature() != 7) { //TODO partnership natures
-                    final Element nature = e(section, "span");
-                    nature.setAttribute("class", "nature");
-                    nature.setTextContent("(" + partnership.nature() + ") ");
-                }
-
-                if (Objects.isNull(uuidLink)) {
-                    final Element span = e(section, "span");
-                    span.setTextContent("[unknown partner]");
-                } else {
-                    final Element span = e(section, "span");
-                    span.setTextContent("partner: ");
-                    final Element a = e(section, "a");
-                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
-                    a.setTextContent(partnership.name());
-                }
-
-                fragEvents(indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
-
-                fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
-
-                // TODO: how would it look if children's births were merged with partnership events?
             }
         }
     }

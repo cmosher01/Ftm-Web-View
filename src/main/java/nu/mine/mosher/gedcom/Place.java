@@ -65,6 +65,10 @@ public class Place {
         return place;
     }
 
+    public static Place empty() {
+        return new Place(new ArrayList<>(), "", Optional.empty(), false, 0);
+    }
+
     public boolean isBlank() {
         return !this.ditto && /*this.sDisplay.isBlank() &&*/ safe(this.description).isBlank();
     }

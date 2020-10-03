@@ -6,8 +6,6 @@ USER root
 ENV HOME /root
 WORKDIR $HOME
 
-RUN echo "org.gradle.daemon=false" >gradle.properties
-
 COPY gradle/ gradle/
 COPY gradlew ./
 RUN ./gradlew --version

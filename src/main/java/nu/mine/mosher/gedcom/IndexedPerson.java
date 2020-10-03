@@ -3,13 +3,9 @@ package nu.mine.mosher.gedcom;
 import java.util.*;
 
 
-public record IndexedPerson(UUID id, Refn refn, String name) implements Comparable<IndexedPerson> {
+public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateBirth) implements Comparable<IndexedPerson> {
     public static IndexedPerson from(final UUID uuidPerson) {
-        return from(uuidPerson, true);
-    }
-
-    public static IndexedPerson from(final UUID uuidPerson, boolean withRefn) {
-        return new IndexedPerson(uuidPerson, withRefn ? new Refn(uuidPerson) : null, null);
+        return new IndexedPerson(uuidPerson, new Refn(uuidPerson), null, 0, Day.UNKNOWN);
     }
 
     @Override
@@ -23,5 +19,9 @@ public record IndexedPerson(UUID id, Refn refn, String name) implements Comparab
             return refn().uuid();
         }
         return id();
+    }
+
+    public boolean isRecent() {
+        return Objects.nonNull(dateBirth) && dateBirth.isRecent();
     }
 }

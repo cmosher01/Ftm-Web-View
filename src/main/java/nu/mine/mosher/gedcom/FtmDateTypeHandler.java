@@ -23,7 +23,7 @@ public class FtmDateTypeHandler extends BaseTypeHandler<Day> {
         final String s = rs.getString(columnName);
 
         if (rs.wasNull()) {
-            return null;
+            return Day.UNKNOWN;
         }
 
         return Day.fromFtmFactDate(s);
@@ -34,14 +34,14 @@ public class FtmDateTypeHandler extends BaseTypeHandler<Day> {
         final String s = rs.getString(columnIndex);
 
         if (rs.wasNull()) {
-            return null;
+            return Day.UNKNOWN;
         }
 
         return Day.fromFtmFactDate(s);
     }
 
     @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, Day parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i, Day parameter, JdbcType jdbcType) {
         throw new UnsupportedOperationException();
     }
 }

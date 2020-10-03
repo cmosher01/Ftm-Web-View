@@ -6,9 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
-import java.time.LocalDate;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.JulianFields;
+import java.time.temporal.*;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,11 +19,13 @@ import static nu.mine.mosher.gedcom.DatabaseUtil.bits;
 
 public class Day implements Comparable<Day> {
     private static final Logger LOG =  LoggerFactory.getLogger(Day.class);
-    private static final FlaggedDate UNKNOWN = new FlaggedDate(0x80000011);
+    private static final FlaggedDate FD_UNKNOWN = new FlaggedDate(0x80000011);
 
     private final FlaggedDate earliest;
     private final FlaggedDate latest;
     private final String other;
+
+    public static final Day UNKNOWN = new Day(FD_UNKNOWN, FD_UNKNOWN);
 
     private Day(final long d1, final long d2, final String other) {
         FlaggedDate fd1 = new FlaggedDate(d1);
@@ -32,10 +34,10 @@ public class Day implements Comparable<Day> {
         // doctor up "after/before" flags into earliest/latest dates
         if (fd1.equals(fd2) && !fd1.about) {
             if (fd1.after) {
-                fd2 = UNKNOWN;
+                fd2 = FD_UNKNOWN;
             } else if (fd1.before) {
                 fd2 = fd1;
-                fd1 = UNKNOWN;
+                fd1 = FD_UNKNOWN;
             }
         }
 
@@ -44,6 +46,12 @@ public class Day implements Comparable<Day> {
         this.other = other;
 
         dump();
+    }
+
+    private Day(FlaggedDate fd1, FlaggedDate fd2) {
+        this.earliest = fd1;
+        this.latest = fd2;
+        this.other = "";
     }
 
     @Override
@@ -97,6 +105,9 @@ public class Day implements Comparable<Day> {
         return this.earliest.compareTo(that.earliest);
     }
 
+    public boolean isRecent() {
+        return this.latest.isRecent() || this.earliest.isRecent();
+    }
 
 
     // TODO: BC dates: year negative 2 equals 3 BC
@@ -210,6 +221,10 @@ public class Day implements Comparable<Day> {
         @Override
         public int hashCode() {
             return Objects.hash(this.flags, this.unknown, this.d);
+        }
+
+        public boolean isRecent() {
+            return  !this.unknown && LocalDate.now().minusYears(110).compareTo(this.ld) < 0;
         }
     }
 }

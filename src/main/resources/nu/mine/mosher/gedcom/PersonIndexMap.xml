@@ -4,15 +4,26 @@
     <resultMap id="result" type="nu.mine.mosher.gedcom.IndexedPerson"/>
     <select id="select" resultMap="result">
         SELECT
-            Person.PersonGuid as id,
-            Fact.Text as refn,
-            Person.FullNameReversed as name
+            Person.PersonGuid AS id,
+            Refn.Text AS refn,
+            Person.FullNameReversed AS name,
+            Person.ID AS pkid,
+            Birth.Date AS dateBirth
         FROM
             Person LEFT OUTER JOIN
-            Fact ON (
-                Fact.LinkTableID = 5 AND
-                Fact.LinkID = Person.ID AND
-                Fact.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Tag LIKE '%UID%' OR FactType.Tag LIKE '%REFN%')
+            Fact AS Refn ON (
+                Refn.LinkTableID = 5 AND
+                Refn.LinkID = Person.ID AND
+                Refn.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Tag LIKE '%UID%' OR FactType.Tag LIKE '%REFN%' LIMIT 1
+                )
+            ) LEFT OUTER JOIN
+            Fact AS Birth ON (
+                Birth.LinkTableID = 5 AND
+                Birth.LinkID = Person.ID AND
+                Birth.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
+                )
             )
     </select>
 </mapper>

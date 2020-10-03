@@ -23,7 +23,7 @@ public class FtmPlaceTypeHandler extends BaseTypeHandler<Place> {
         final String s = rs.getString(columnName);
 
         if (rs.wasNull()) {
-            return null;
+            return Place.empty();
         }
 
         return Place.fromFtmPlace(s);
@@ -34,7 +34,7 @@ public class FtmPlaceTypeHandler extends BaseTypeHandler<Place> {
         final String s = rs.getString(columnIndex);
 
         if (rs.wasNull()) {
-            return null;
+            return Place.empty();
         }
 
         return Place.fromFtmPlace(s);

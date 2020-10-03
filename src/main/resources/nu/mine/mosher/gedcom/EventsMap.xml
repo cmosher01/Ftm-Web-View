@@ -5,7 +5,7 @@
         SELECT
             Fact.ID AS pkid,
             Fact.Date AS date,
-            COALESCE(Place.Name, '') AS place,
+            Place.Name AS place,
             FactType.Name AS type,
             Fact.Text AS description
         FROM

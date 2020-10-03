@@ -106,7 +106,7 @@
             null AS footnote,
             null AS apid,
             null AS author,
-            'unknown source' AS title,
+            '[unknown source]' AS title,
             null AS placePub,
             null AS pub,
             null AS datePub,
@@ -124,6 +124,36 @@
             Fact.LinkTableID = #{table.id} AND
             Fact.LinkID = #{id} AND
             MediaFile.ID IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+            Fact.ID AS pkidFact,
+            0 AS pkidSourceLink,
+            null AS stars,
+            null AS just,
+            random() AS pkidCitation,
+            null AS page,
+            null AS comment,
+            Note.NoteText AS footnote,
+            null AS apid,
+            null AS author,
+            null AS title,
+            null AS placePub,
+            null AS pub,
+            null AS datePub,
+            null AS callno,
+            null AS source,
+            null AS apidSource,
+            null AS media_pkidMedia,
+            null AS media_file,
+            null AS weblink
+        FROM
+            Fact INNER JOIN
+            Note ON Note.LinkTableID = 2 AND Note.LinkID = Fact.ID
+        WHERE
+            Fact.LinkTableID = #{table.id} AND
+            Fact.LinkID = #{id}
 
         ORDER BY
             pkidFact
