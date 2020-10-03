@@ -317,7 +317,6 @@ public class FtmViewerServlet extends HttpServlet {
         e(body, "hr");
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "databases");
         final Element ul = e(section, "ul");
         final List<IndexedDatabase> dbs = loadDatabaseIndex();
         dbs.sort((o1, o2) -> o1.file().getName().toLowerCase().compareToIgnoreCase(o2.file().getName().toLowerCase()));
@@ -381,15 +380,14 @@ public class FtmViewerServlet extends HttpServlet {
         e(body, "hr");
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "index");
 
         final Element ul = e(section, "ul");
         ul.setAttribute("class", "columnar");
         for (final IndexedPerson indexedPerson : list) {
             if (role.authorized() || !indexedPerson.isRecent()) {
                 final Element li = e(ul, "li");
+                li.setAttribute("class", "hanging");
                 final Element p = e(li, "p");
-                p.setAttribute("class", "hanging");
                 final Element ap = e(p, "a");
                 ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
                 ap.setTextContent(indexedPerson.name());
@@ -559,19 +557,17 @@ public class FtmViewerServlet extends HttpServlet {
         }
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "footnotes smaller blockindent");
+        section.setAttribute("class", "smaller indent");
         final Element ul = e(section, "ul");
 
         for (int i = 1; i <= n; ++i) {
             final Element li = e(ul, "li");
 
             final Element footnote = e(li, "p");
-            footnote.setAttribute("class", "blockindent");
             footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
 
             final Element sup = e(footnote, "sup");
             final Element footnum = e(sup, "span");
-            footnum.setAttribute("class", "footnum");
             footnum.setTextContent(formatFootnum(i, n));
 
             footnotes.getFootnote(i).appendTo(footnote, indexedDatabase);
@@ -692,7 +688,6 @@ public class FtmViewerServlet extends HttpServlet {
         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
         final Element personName = e(h1, "span");
-        personName.setAttribute("class", "personName");
         personName.setTextContent(person.nameWithSlashes());
     }
 
@@ -721,14 +716,12 @@ public class FtmViewerServlet extends HttpServlet {
         }
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "parents");
         final Element table = e(section, "table");
         final Element tbody = e(table, "tbody");
         if (parents.isEmpty()) {
             final Element tr = e(tbody, "tr");
             final Element td = e(tr, "td");
             final Element span = e(td, "span");
-            span.setAttribute("class", "missing");
             span.setTextContent("[no known parents (in this database)]");
         } else {
             for (final PersonParent parent : parents) {
@@ -741,7 +734,6 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element td = e(tr, "td");
                 if (parent.nature() != 0) { // TODO parent nature
                     final Element nature = e(td, "span");
-                    nature.setAttribute("class", "nature");
                     nature.setTextContent("(" + parent.nature() + ") ");
                 }
                 final Element a = e(td, "a");
@@ -785,9 +777,7 @@ public class FtmViewerServlet extends HttpServlet {
             LOG.debug("no partnerships selected");
             e(body, "hr");
             final Element section = e(body, "section");
-            section.setAttribute("class", "partnership");
             final Element span = e(section, "span");
-            span.setAttribute("class", "missing");
             span.setTextContent("[no known partnerships (in this database)]");
         } else {
             LOG.debug("partnerships selected: {}", partnerships);
@@ -800,10 +790,8 @@ public class FtmViewerServlet extends HttpServlet {
                     }
                     e(body, "hr");
                     final Element section = e(body, "section");
-                    section.setAttribute("class", "partnership");
                     if (partnership.nature() != 7) { //TODO partnership natures
                         final Element nature = e(section, "span");
-                        nature.setAttribute("class", "nature");
                         nature.setTextContent("(" + partnership.nature() + ") ");
                     }
 
@@ -843,7 +831,6 @@ public class FtmViewerServlet extends HttpServlet {
             final Element tr = e(tbody, "tr");
             final Element td = e(tr, "td");
             final Element span = e(td, "span");
-            span.setAttribute("class", "missing");
             span.setTextContent("[no known children for this partnership (in this database)]");
         } else {
             for (final PersonChild child : children) {

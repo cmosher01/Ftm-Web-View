@@ -50,11 +50,8 @@ tr:nth-child(5n) {
     border-bottom: 1px dotted var(--sol-base1);
 }
 
-/* paragraph: remove block margins */
-p {
-    margin-block-start: unset;
-    margin-block-end: unset;
-}
+
+
 
 /* some text styles */
 .smaller {
@@ -65,17 +62,16 @@ p {
     white-space: nowrap;
 }
 
-.hanging {
-    text-indent: -2em;
-    padding-left: 2em;
-}
-
 .indent {
     text-indent: 2em;
 }
 
-.blockindent {
-    padding-left: 4em;
+.hanging {
+    text-indent: -2em;
+    padding-left: 2em;
+    display: block;
+    margin-block-start: unset;
+    margin-block-end: unset;
 }
 
 /* float styles for two-column layout */
