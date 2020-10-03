@@ -2,9 +2,15 @@ package nu.mine.mosher.gedcom;
 
 
 
+import org.apache.tika.exception.TikaException;
+import org.jdom2.JDOMException;
 import org.slf4j.*;
-import org.w3c.dom.Element;
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import java.io.IOException;
 import java.util.*;
 
 import static nu.mine.mosher.gedcom.StringUtils.*;
@@ -54,7 +60,7 @@ public record EventSource(
         return Objects.hash(this.pkidCitation());
     }
 
-    public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) {
+    public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException {
         // TEI check first (either in footnote-override, or page)
         boolean wasTei;
         wasTei = teiStyleIfPossible(safe(footnote), parent);
@@ -68,8 +74,9 @@ public record EventSource(
 
         // footnote-override
         if (!safe(footnote()).isBlank()) {
-            final Element t = e(parent, "span");
-            t.setTextContent(safe(footnote()));
+            final Node note = HtmlUtils.tika(footnote());
+            final Node newNote = parent.getOwnerDocument().importNode(note, true);
+            parent.appendChild(newNote);
             return;
         }
 

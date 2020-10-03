@@ -2,8 +2,9 @@
 @import url("https://mosher.mine.nu/uniwebfonts/css/fonts.css");
 @import url("https://mosher.mine.nu/tei/tei.css");
 
-/* don't start div's on a new line */
-div {
+/* don't start div's or p's on a new line */
+div,
+p {
     display: inline;
 }
 
@@ -58,6 +59,10 @@ p {
 /* some text styles */
 .smaller {
     font-size: smaller;
+}
+
+.nowrap {
+    white-space: nowrap;
 }
 
 .hanging {

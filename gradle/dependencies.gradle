@@ -12,6 +12,7 @@ dependencies {
     implementation group: 'org.mybatis', name: 'mybatis', version: 'latest.release'
     implementation group: 'com.google.api-client', name: 'google-api-client', version: 'latest.release'
     implementation group: 'nu.mine.mosher.xml', name: 'tei-to-xhtml5', version: 'latest.integration'
+    implementation group: 'nu.mine.mosher.xml', name: 'xslt-pipeline', version: 'latest.integration'
     providedCompile group: 'jakarta.servlet', name: 'jakarta.servlet-api', version: 'latest.integration'
 
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'latest.release'
@@ -20,6 +21,7 @@ dependencies {
     runtimeOnly group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.release'
     runtimeOnly group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.release'
 
+    implementation group: "org.apache.tika", name: "tika-parsers", version: 'latest.release'
     implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
 
     runtimeOnly group: 'xerces', name: 'xercesImpl', version: 'latest.release', {

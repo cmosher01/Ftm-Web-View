@@ -4,8 +4,11 @@ import jakarta.servlet.http.*;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
+import org.apache.tika.exception.TikaException;
+import org.jdom2.JDOMException;
 import org.slf4j.*;
 import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -19,7 +22,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
-import static nu.mine.mosher.gedcom.StringUtils.safe;
 import static nu.mine.mosher.gedcom.XmlUtils.XHTML_NAMESPACE;
 import static nu.mine.mosher.gedcom.XmlUtils.e;
 
@@ -39,7 +41,7 @@ public class FtmViewerServlet extends HttpServlet {
         LOG.trace("REQUEST HANDLING: END   {}", "=".repeat(50));
     }
 
-    private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException {
+    private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException, JDOMException, SAXException, TikaException {
         Optional<Document> dom = Optional.empty();
 
         if (request.getServletPath().equals("/")) {
@@ -98,7 +100,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException {
+    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException {
         final Optional<UUID> uuidPerson = getRequestedPerson(request);
         if (uuidPerson.isPresent()) {
             LOG.debug("person_uuid: {}", uuidPerson.get());
@@ -509,7 +511,7 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException {
+    private Document pagePerson(Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
 
         final Document dom = XmlUtils.empty();
@@ -550,7 +552,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private void fragFootnotes(final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) {
+    private void fragFootnotes(final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException {
         final int n = footnotes.size();
         if (n <= 0) {
             return;
@@ -564,7 +566,7 @@ public class FtmViewerServlet extends HttpServlet {
             final Element li = e(ul, "li");
 
             final Element footnote = e(li, "p");
-            footnote.setAttribute("class", "indent");
+            footnote.setAttribute("class", "blockindent");
             footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
 
             final Element sup = e(footnote, "sup");
@@ -607,7 +609,6 @@ public class FtmViewerServlet extends HttpServlet {
         abbreviatePlacesOf(events);
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "events");
         final Element table = e(section, "table");
         final Element tbody = e(table, "tbody");
         for (final Event event : events) {
@@ -619,11 +620,10 @@ public class FtmViewerServlet extends HttpServlet {
         if (role.authorized() || !event.isRecent()) {
             final Element tr = e(tbody, "tr");
             final Element tdDate = e(tr, "td");
-            tdDate.setAttribute("class", "eventDate");
+            tdDate.setAttribute("class", "nowrap");
             final Element span = e(tdDate, "span");
             ifPresent(event.date(), span);
             final Element tdPlace = e(tr, "td");
-            tdPlace.setAttribute("class", "eventPlace");
             final Place place = event.place();
             if (place.isBlank()) {
                 ifPresent(null, tdPlace);
@@ -631,7 +631,6 @@ public class FtmViewerServlet extends HttpServlet {
                 place.appendTo(tdPlace);
             }
             final Element tdDescription = e(tr, "td");
-            tdDescription.setAttribute("class", "eventDescription");
             final Element spanType = e(tdDescription, "span");
             ifPresent(event.type(), spanType);
             if (Objects.nonNull(event.description()) && !event.description().isBlank()) {
@@ -647,7 +646,6 @@ public class FtmViewerServlet extends HttpServlet {
                     final int footnum = footnotes.putFootnote(s);
                     final Element sup = e(tdDescription, "sup");
                     final Element footref = e(sup, "a");
-                    footref.setAttribute("class", "footref");
                     footref.setAttribute("href", "#f" + footnum);
                     footref.setTextContent("[" + footnum + "]");
                 });

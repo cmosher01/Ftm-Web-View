@@ -1,6 +1,6 @@
 package nu.mine.mosher.gedcom;
 
-import nu.mine.mosher.xml.TeiToXhtml5;
+import nu.mine.mosher.xml.*;
 import org.slf4j.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
@@ -167,5 +167,29 @@ public class XmlUtils {
             "</ab>" +
             "</body>" +
             "</text>");
+    }
+
+    public static Node cleanTikaXml(final Node tikaXml) throws IOException, TransformerException, ParserConfigurationException, SAXException {
+        final XsltPipeline p = new XsltPipeline();
+        p.dom();
+        final Node work = p.accessDom();
+        final Document doc;
+        if (work instanceof Document) {
+            doc = (Document)work;
+        } else {
+            doc = work.getOwnerDocument();
+        }
+        final Node workingNode = doc.importNode(tikaXml, true);
+        work.appendChild(workingNode);
+        p.xslt(urlXslt("CleanTika.xslt"));
+        Node ret = p.accessDom();
+        if (ret instanceof Document) {
+            ret = ret.getFirstChild();
+        }
+        return ret;
+    }
+
+    private static URL urlXslt(final String path) {
+        return XmlUtils.class.getResource("xslt/" + path);
     }
 }
