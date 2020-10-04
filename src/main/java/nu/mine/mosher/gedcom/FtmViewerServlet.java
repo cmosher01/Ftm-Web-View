@@ -757,7 +757,7 @@ public class FtmViewerServlet extends HttpServlet {
                 }
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
-                if (parent.nature() != 0) { // TODO parent nature
+                if (parent.nature().display()) {
                     final Element nature = e(td, "span");
                     nature.setTextContent("(" + parent.nature() + ") ");
                 }
@@ -815,7 +815,7 @@ public class FtmViewerServlet extends HttpServlet {
                     }
                     e(body, "hr");
                     final Element section = e(body, "section");
-                    if (partnership.nature() != 7) { //TODO partnership natures
+                    if (partnership.nature().display()) {
                         final Element nature = e(section, "span");
                         nature.setTextContent("(" + partnership.nature() + ") ");
                     }
@@ -833,7 +833,7 @@ public class FtmViewerServlet extends HttpServlet {
 
                     fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
 
-                    fragPersonPartnershipChildren(indexedDatabase, partnership.id(), section);
+                    fragPersonPartnershipChildren(indexedDatabase, indexedPerson, partnership.id(), section);
 
                     // TODO: how would it look if children's births were merged with partnership events?
                 }
@@ -841,11 +841,11 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private void fragPersonPartnershipChildren(final IndexedDatabase indexedDatabase, final int idRelationship, final Element section) throws SQLException {
+    private void fragPersonPartnershipChildren(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final int idRelationship, final Element section) throws SQLException {
         final List<PersonChild> children;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
-            children = map.select(idRelationship);
+            children = map.select(new ChildrenMap.ParentRel(idRelationship, indexedPerson.pkid()));
         }
         final Element ch = e(section, "span");
         ch.setTextContent("children: ");
@@ -866,9 +866,13 @@ public class FtmViewerServlet extends HttpServlet {
                 }
                 final Element tr = e(tbody, "tr");
                 final Element td = e(tr, "td");
+                if (child.nature().display()) {
+                    final Element span = e(td, "span");
+                    span.setTextContent("("+child.nature()+") ");
+                }
                 final Element a = e(td, "a");
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
-                a.setTextContent(child.name()); // TODO birth dates
+                a.setTextContent(child.name()); // TODO child birth dates
             }
         }
     }

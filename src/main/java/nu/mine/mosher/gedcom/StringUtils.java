@@ -3,11 +3,6 @@ package nu.mine.mosher.gedcom;
 import java.util.Objects;
 
 public class StringUtils {
-    public static String cleanCitationElement(final String s) {
-// TODO re-examine this: replaceFirst("[.,;:]$","");
-        return safe(s);
-    }
-
     public static boolean is(final String s) {
         return Objects.nonNull(s) && !s.isBlank();
     }

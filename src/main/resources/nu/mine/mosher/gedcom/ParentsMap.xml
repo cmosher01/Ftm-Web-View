@@ -5,7 +5,7 @@
         <constructor>
             <idArg column="id" javaType="java.util.UUID"/>
             <arg column="name" javaType="String"/>
-            <arg column="nature" javaType="_int"/>
+            <arg column="nature" javaType="nu.mine.mosher.gedcom.FtmNature"/>
         </constructor>
     </resultMap>
 

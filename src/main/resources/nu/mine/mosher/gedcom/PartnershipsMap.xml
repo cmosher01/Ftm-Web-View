@@ -6,7 +6,7 @@
             <idArg column="id" javaType="_int"/>
             <idArg column="person_id" javaType="java.util.UUID"/>
             <arg column="person_name" javaType="String"/>
-            <arg column="nature" javaType="_int"/>
+            <arg column="nature" javaType="nu.mine.mosher.gedcom.FtmNature"/>
             <arg column="dateSort" javaType="nu.mine.mosher.gedcom.Day"/>
         </constructor>
     </resultMap>

@@ -77,15 +77,13 @@ public record EventSource(
         appendLinksIcons(parent, indexedDatabase);
     }
 
-    private void appendStandardCitation(Element parent) {
-        // TODO look for URLs
-
-        final String author = cleanCitationElement(author());
+    private void appendStandardCitation(final Element parent) {
+        final String author = safe(author());
         if (is(author)) {
             t(parent, author);
         }
 
-        final String title = filterTitle(cleanCitationElement(title()));
+        final String title = safe(title());
         if (is(author) && is(title)) {
             t(parent, ", ");
         }
@@ -105,18 +103,20 @@ public record EventSource(
             }
         }
 
-        t(parent, String.format(" (%s: %s, %s)", place, pub, date));
+        t(parent, links(String.format(" (%s: %s, %s)", place, pub, date)));
 
-        final String page = filterPage(cleanCitationElement(page()));
-        if (is(page)) {
-            t(parent, ", "+page);
-            // TODO if page ends with a period, then don't append one below:
+        final String p = safe(page());
+        if (is(p)) {
+            t(parent, ", "+links(p));
+            if (!p.endsWith(".")) {
+                t(parent, ".");
+            }
+        } else {
+            t(parent, ".");
         }
-
-        t(parent, ".");
     }
 
-    private void appendLinksIcons(Element parent, IndexedDatabase indexedDatabase) {
+    private void appendLinksIcons(final Element parent, final IndexedDatabase indexedDatabase) {
         media().forEach(m -> {
             t(parent, " ");
             final Element a = e(parent, "a");
@@ -150,18 +150,9 @@ public record EventSource(
         }
     }
 
-    private static String filterTitle(final String title) {
-        return title;
-        // TODO ? return title.replaceAll("Web:\\s*", "");
-    }
-
-    private static String filterPage(final String page) {
-        return page;
-        // TODO smarter way to clean up a page reference
-//            /* Ancestry.com tends to use semi-colons in its citations */
-//            .replace(';', ',')
-//            .replaceAll("Page:", "p.")
-//            .replaceAll("Family History Library Film", "FHL microfilm")
-//            .replaceAll("Family History Film", "FHL microfilm");
+    public static String links(final String s) {
+        return s.
+            replaceAll("\\b(\\w+?://\\S+?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"$1\">$1</a>$2").
+            replaceAll("([^/.]www\\.[a-zA-Z]\\S*?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"http://$1\">$1</a>$2");
     }
 }

@@ -5,25 +5,43 @@
         <constructor>
             <idArg column="id" javaType="java.util.UUID"/>
             <arg column="name" javaType="String"/>
-            <arg column="nature" javaType="_int"/>
+            <arg column="nature" javaType="nu.mine.mosher.gedcom.FtmNature"/>
         </constructor>
     </resultMap>
 
-    <select id="select" resultMap="result" parameterType="_int" resultOrdered="true">
-        WITH ParamRelationship AS (
-            SELECT #{id} AS ID
+    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.ChildrenMap$ParentRel" resultOrdered="true">
+        WITH ParamParentRel AS (
+            SELECT #{pkidParentPerson} AS ParentPersonID, #{pkidRelationship} AS RelationshipID
         )
 
         SELECT
             Person.PersonGUID AS id,
             Person.FullNameReversed AS name,
-            99 AS nature -- TODO ???
+            ChildRelationship.Nature1 AS nature,
+            Person.BirthDate
         FROM
-            ParamRelationship LEFT OUTER JOIN
-            ChildRelationship ON (ChildRelationship.RelationshipID = ParamRelationship.ID) LEFT OUTER JOIN
+            ParamParentRel LEFT OUTER JOIN
+            Relationship ON (Relationship.ID = ParamParentRel.RelationshipID AND Relationship.Person1ID = ParamParentRel.ParentPersonID) LEFT OUTER JOIN
+            ChildRelationship ON (ChildRelationship.RelationshipID = Relationship.ID) LEFT OUTER JOIN
             Person ON (Person.ID = ChildRelationship.PersonID)
         WHERE
             Person.ID IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+            Person.PersonGUID AS id,
+            Person.FullNameReversed AS name,
+            ChildRelationship.Nature2 AS nature,
+            Person.BirthDate
+        FROM
+            ParamParentRel LEFT OUTER JOIN
+            Relationship ON (Relationship.ID = ParamParentRel.RelationshipID AND Relationship.Person2ID = ParamParentRel.ParentPersonID) LEFT OUTER JOIN
+            ChildRelationship ON (ChildRelationship.RelationshipID = Relationship.ID) LEFT OUTER JOIN
+            Person ON (Person.ID = ChildRelationship.PersonID)
+        WHERE
+            Person.ID IS NOT NULL
+
         ORDER BY
             Person.BirthDate
     </select>
