@@ -1,0 +1,85 @@
+@import url("https://mosher.mine.nu/uniwebfonts/css/solarized.css");
+@import url("https://mosher.mine.nu/uniwebfonts/css/fonts.css");
+@import url("https://mosher.mine.nu/tei/tei.css");
+
+/* don't start div's or p's on a new line */
+div,
+p {
+    display: inline;
+}
+
+/* don't underline or dis-color links */
+a {
+    text-decoration: unset;
+    color: unset;
+}
+
+/* but highlight when hovering over links */
+a:hover {
+    color: var(--sol-base02);
+    background-color: var(--sol-cyan);
+}
+
+table {
+    border-collapse: collapse;
+}
+
+tbody {
+    vertical-align: baseline;
+}
+
+table, td, th {
+    border: 1px dotted var(--sol-base1);
+}
+
+
+/* some text styles */
+.smaller {
+    font-size: smaller;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.indent {
+    text-indent: 2em;
+}
+
+.hanging {
+    text-indent: -2em;
+    padding-left: 2em;
+    display: block;
+    margin-block-start: unset;
+    margin-block-end: unset;
+}
+
+/* float styles for two-column layout */
+.left {
+    float: left;
+    text-align: left;
+    width: 49%;
+}
+
+.right {
+    float: right;
+    text-align: right;
+    width: 49%;
+}
+
+.clear:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+/*
+    minimal styling for Google's "Sign in" button
+    (Google's are currently blocked by CSP.)
+*/
+.g-signin2,
+#signout {
+    border: 1px solid gray;
+    padding: 3px;
+    cursor: pointer;
+}

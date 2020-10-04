@@ -7,6 +7,7 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.sax.SAXHandler;
 import org.jdom2.output.DOMOutputter;
 import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
 import org.jsoup.nodes.*;
 import org.jsoup.safety.*;
 import org.xml.sax.SAXException;
@@ -17,21 +18,26 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+import static nu.mine.mosher.gedcom.XmlUtils.XHTML_NAMESPACE;
+
 public class HtmlUtils {
-    public static String appendHtml(final String html) {
+    public static org.w3c.dom.Node  html(final String input) {
         final Cleaner cleaner = new Cleaner(Whitelist.relaxed());
-        final Document document = cleaner.clean(Jsoup.parseBodyFragment(html));
+        final Document document = cleaner.clean(Jsoup.parseBodyFragment(input));
         document.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
         document.outputSettings().escapeMode(Entities.EscapeMode.xhtml);
         document.outputSettings().charset(StandardCharsets.UTF_8);
         document.outputSettings().prettyPrint(false);
 
-        final Element body = document.getElementsByTag("body").first();
-        return body.tagName("div").outerHtml();
+        document.getElementsByTag("body").first().tagName("div").attr("xmlns", XHTML_NAMESPACE);
+
+        final org.w3c.dom.Document dom = W3CDom.convert(document);
+
+        return dom.getFirstChild().getFirstChild().getNextSibling();
     }
 
-    public static boolean looksLikeHtml(final String s) {
-        final String low = s.trim().toLowerCase();
+    public static boolean looksLikeHtml(final String input) {
+        final String low = input.trim().toLowerCase();
         return
             low.startsWith("<html") ||
             low.startsWith("<!doctype html") ||

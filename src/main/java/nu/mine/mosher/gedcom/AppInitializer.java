@@ -73,6 +73,7 @@ public class AppInitializer {
         config.addMapper(ChildrenMap.class);
         config.addMapper(EventsMap.class);
         config.addMapper(EventSourcesMap.class);
+        config.addMapper(SourceMap.class);
     }
 
 

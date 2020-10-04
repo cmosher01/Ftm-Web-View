@@ -13,6 +13,7 @@ import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.util.*;
 
+import static nu.mine.mosher.gedcom.FtmViewerServlet.urlQueryTreeSource;
 import static nu.mine.mosher.gedcom.StringUtils.*;
 import static nu.mine.mosher.gedcom.XmlUtils.*;
 
@@ -61,27 +62,22 @@ public record EventSource(
     }
 
     public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException {
-        // TEI check first (either in footnote-override, or page)
-        boolean wasTei;
-        wasTei = teiStyleIfPossible(safe(footnote), parent);
-        if (wasTei) {
-            return;
-        }
-        wasTei = teiStyleIfPossible(safe(page), parent);
-        if (wasTei) {
-            return;
-        }
-
-        // footnote-override
-        if (!safe(footnote()).isBlank()) {
-            final Node note = HtmlUtils.tika(footnote());
-            final Node newNote = parent.getOwnerDocument().importNode(note, true);
-            parent.appendChild(newNote);
-            return;
+        if (!teiStyleIfPossible(safe(footnote), parent)) {
+            if (!teiStyleIfPossible(safe(page), parent)) {
+                if (!safe(footnote()).isBlank()) {
+                    final Node note = HtmlUtils.tika(footnote());
+                    final Node newNote = parent.getOwnerDocument().importNode(note, true);
+                    parent.appendChild(newNote);
+                } else {
+                    appendStandardCitation(parent);
+                }
+            }
         }
 
+        appendLinksIcons(parent, indexedDatabase);
+    }
 
-
+    private void appendStandardCitation(Element parent) {
         // TODO look for URLs
 
         final String author = cleanCitationElement(author());
@@ -114,10 +110,13 @@ public record EventSource(
         final String page = filterPage(cleanCitationElement(page()));
         if (is(page)) {
             t(parent, ", "+page);
+            // TODO if page ends with a period, then don't append one below:
         }
 
         t(parent, ".");
+    }
 
+    private void appendLinksIcons(Element parent, IndexedDatabase indexedDatabase) {
         media().forEach(m -> {
             t(parent, " ");
             final Element a = e(parent, "a");
@@ -126,6 +125,13 @@ public record EventSource(
             a.setAttribute("href", "../ftm/"+path);
             a.setTextContent(new String(Character.toChars(0x1F5BB)));
         });
+
+        if (!safe(comment).isBlank()) {
+            t(parent, " ");
+            final Element a = e(parent, "a");
+            a.setAttribute("href", urlQueryTreeSource(indexedDatabase, pkidCitation));
+            a.setTextContent(new String(Character.toChars(0x1F5D0)));
+        }
 
         if (!safe(weblink()).isBlank()) {
             t(parent, " ");
@@ -142,8 +148,6 @@ public record EventSource(
                 ancestry.appendAsAHref(parent);
             }
         }
-
-        // TODO: notes
     }
 
     private static String filterTitle(final String title) {

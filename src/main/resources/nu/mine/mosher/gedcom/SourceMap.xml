@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.gedcom.SourceMap">
+    <!-- TODO is it easy to expand to include media and weblinks? -->
+    <select id="select" resultType="nu.mine.mosher.gedcom.EventSource" parameterType="int">
+        SELECT
+            Source.ID AS pkidCitation,
+            Source.PageNumber AS page,
+            Source.Comment AS comment,
+            Source.Footnote AS footnote,
+            Source.PID AS apid,
+            MasterSource.Author AS author,
+            MasterSource.Title AS title,
+            MasterSource.PublisherLocation AS placePub,
+            MasterSource.PublisherName AS pub,
+            MasterSource.PublishDate AS datePub,
+            MasterSource.CallNumber AS callno,
+            MasterSource.Comments AS source,
+            MasterSource.PID AS apidSource
+        FROM
+            Source LEFT OUTER JOIN
+            MasterSource ON MasterSource.ID = Source.MasterSourceID
+        WHERE
+            Source.ID = #{pkidCitation}
+    </select>
+</mapper>

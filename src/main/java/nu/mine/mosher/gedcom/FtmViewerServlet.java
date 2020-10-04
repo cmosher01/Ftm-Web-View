@@ -1,6 +1,7 @@
 package nu.mine.mosher.gedcom;
 
 import jakarta.servlet.http.*;
+import opennlp.tools.dictionary.Index;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
@@ -22,8 +23,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
-import static nu.mine.mosher.gedcom.XmlUtils.XHTML_NAMESPACE;
-import static nu.mine.mosher.gedcom.XmlUtils.e;
+import static nu.mine.mosher.gedcom.HtmlUtils.*;
+import static nu.mine.mosher.gedcom.StringUtils.safe;
+import static nu.mine.mosher.gedcom.XmlUtils.*;
 
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
@@ -123,7 +125,7 @@ public class FtmViewerServlet extends HttpServlet {
             indexedDatabase = Optional.empty();
         }
 
-
+        final Optional<Integer> pkidCitation = getRequestedSource(request);
 
         final Auth.RbacRole role = Auth.auth(request);
         LOG.debug("Resulting role: {}", role);
@@ -154,6 +156,8 @@ public class FtmViewerServlet extends HttpServlet {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
             }
+        } else if (pkidCitation.isPresent() && indexedDatabase.isPresent()) {
+            dom = Optional.of(pageSource(role, indexedDatabase.get(), pkidCitation.get()));
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 dom = Optional.of(pageIndexPeople(role, indexedDatabase.get()));
@@ -203,6 +207,14 @@ public class FtmViewerServlet extends HttpServlet {
         return "?"+URLEncodedUtils.format(
             List.of(
                 new BasicNameValuePair("tree", indexedDatabase.file().getName())),
+            StandardCharsets.UTF_8);
+    }
+
+    public static String urlQueryTreeSource(final IndexedDatabase indexedDatabase, final int pkidCitation) {
+        return "?"+URLEncodedUtils.format(
+            List.of(
+                new BasicNameValuePair("tree", indexedDatabase.file().getName()),
+            new BasicNameValuePair("source", ""+pkidCitation)),
             StandardCharsets.UTF_8);
     }
 
@@ -278,6 +290,19 @@ public class FtmViewerServlet extends HttpServlet {
                 return Optional.of(UUID.fromString(optStringUuidPerson.get()));
             } catch (final Throwable e) {
                 LOG.warn("Invalid format for UUID on person_uuid query parameter.", e);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Integer> getRequestedSource(final HttpServletRequest request) {
+        final Optional<String> optPkidSource = Optional.ofNullable(request.getParameter("source"));
+        if (optPkidSource.isPresent() && !optPkidSource.get().isBlank()) {
+            try {
+                return Optional.of(Integer.parseInt(optPkidSource.get()));
+            } catch (final Throwable e) {
+                LOG.info("Invalid format for source ID query parameter: {}", optPkidSource.get());
+                return Optional.empty();
             }
         }
         return Optional.empty();
@@ -846,6 +871,68 @@ public class FtmViewerServlet extends HttpServlet {
                 a.setTextContent(child.name()); // TODO birth dates
             }
         }
+    }
+
+    private Document pageSource(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException {
+        final EventSource eventSource;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final SourceMap map = session.getMapper(SourceMap.class);
+            eventSource = map.select(pkidCitation);
+        }
+
+        final Document dom = XmlUtils.empty();
+
+        final Element html = e(dom, "html");
+        html.setAttribute("class", "fontFeatures unicodeWebFonts solarizedLight");
+
+
+
+        final Element head = e(html, "head");
+
+        final Element title = e(head, "title");
+        title.setTextContent(eventSource.title());
+
+        final Element css = e(head, "link");
+        css.setAttribute("rel", "stylesheet");
+        css.setAttribute("href", "./css/source.css");
+
+        addAuthHead(head);
+
+        final Element body = e(html, "body");
+
+        fragNav(role, indexedDatabase, null, body);
+
+        e(body, "hr");
+
+        final Element sectionCitation = e(body, "section");
+        final Element divCitation = e(sectionCitation, "div");
+        eventSource.appendTo(divCitation, indexedDatabase);
+
+        e(body, "hr");
+
+        final Element sectionTranscript = e(body, "section");
+        final Element divTranscript = e(sectionTranscript, "div");
+
+        if (safe(eventSource.comment()).isBlank()) {
+            divTranscript.setTextContent("[A transcription of this page is not available.]");
+        } else {
+            final String trans = eventSource.comment();
+            final Node node;
+            if (!teiStyleIfPossible(trans, divTranscript)) {
+                if (looksLikeHtml(trans)) {
+                    node = html(trans);
+                } else {
+                    node = HtmlUtils.tika(trans);
+                }
+                divTranscript.appendChild(divTranscript.getOwnerDocument().importNode(node, true));
+            }
+        }
+
+        e(body, "hr");
+
+        fragFooter(body);
+
+        return dom;
     }
 
     private static Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
