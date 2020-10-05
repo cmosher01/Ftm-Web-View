@@ -904,7 +904,11 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/source.css");
+        css.setAttribute("href", "./css/layout.css");
+
+        final Element css2 = e(head, "link");
+        css2.setAttribute("rel", "stylesheet");
+        css2.setAttribute("href", "./css/source.css");
 
         addAuthHead(head);
 

@@ -47,7 +47,7 @@ tbody {
 
 /* make rows in table easier to follow when reading across the page */
 tr:nth-child(5n) {
-    border-bottom: 1px dotted var(--sol-base1);
+    border-bottom: thin dotted var(--sol-base1);
 }
 
 
@@ -99,7 +99,7 @@ tr:nth-child(5n) {
 */
 .g-signin2,
 #signout {
-    border: 1px solid gray;
+    border: thin solid var(--sol-base00);
     padding: 3px;
     cursor: pointer;
 }
