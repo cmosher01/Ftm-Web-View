@@ -173,23 +173,23 @@ public class XmlUtils {
         final XsltPipeline p = new XsltPipeline();
         p.dom();
         final Node work = p.accessDom();
-        final Document doc;
-        if (work instanceof Document) {
-            doc = (Document)work;
-        } else {
-            doc = work.getOwnerDocument();
-        }
-        final Node workingNode = doc.importNode(tikaXml, true);
+        final Node workingNode = docFromNode(work).importNode(tikaXml, true);
         work.appendChild(workingNode);
+
         p.xslt(urlXslt("CleanTika.xslt"));
-        Node ret = p.accessDom();
-        if (ret instanceof Document) {
-            ret = ret.getFirstChild();
-        }
-        return ret;
+
+        return nodeFromDoc(p.accessDom());
     }
 
     private static URL urlXslt(final String path) {
         return XmlUtils.class.getResource("xslt/" + path);
+    }
+
+    public static Document docFromNode(final Node node) {
+        return node instanceof Document ? (Document)node : node.getOwnerDocument();
+    }
+
+    public static Node nodeFromDoc(final Node node) {
+        return node instanceof Document ? ((Document)node).getDocumentElement() : node;
     }
 }

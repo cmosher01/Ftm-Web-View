@@ -815,9 +815,15 @@ public class FtmViewerServlet extends HttpServlet {
                     }
                     e(body, "hr");
                     final Element section = e(body, "section");
+
                     if (partnership.nature().display()) {
                         final Element nature = e(section, "span");
                         nature.setTextContent("(" + partnership.nature() + ") ");
+                    }
+
+                    if (partnership.status().display()) {
+                        final Element nature = e(section, "span");
+                        nature.setTextContent("(" + partnership.status() + ") ");
                     }
 
                     if (Objects.isNull(uuidLink)) {

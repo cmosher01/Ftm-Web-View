@@ -2,6 +2,7 @@ package nu.mine.mosher.gedcom;
 
 
 
+import nu.mine.mosher.xml.*;
 import org.apache.tika.exception.TikaException;
 import org.jdom2.JDOMException;
 import org.slf4j.*;
@@ -35,7 +36,7 @@ public record EventSource(
     String pub,
     String datePub,
     String callno,
-    String source,
+    String source, // MasterSource.Comments TODO what to do with this?
     String apidSource,
 
     List<MediaFile> media,
@@ -64,56 +65,90 @@ public record EventSource(
     public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException {
         if (!teiStyleIfPossible(safe(footnote), parent)) {
             if (!teiStyleIfPossible(safe(page), parent)) {
+                final Node node;
                 if (!safe(footnote()).isBlank()) {
-                    final Node note = HtmlUtils.tika(footnote());
-                    final Node newNote = parent.getOwnerDocument().importNode(note, true);
-                    parent.appendChild(newNote);
+                    node = HtmlUtils.tika(footnote());
                 } else {
-                    appendStandardCitation(parent);
+                    node = buildStandardCitationAsTei();
                 }
+                parent.appendChild(parent.getOwnerDocument().importNode(node, true));
             }
         }
 
         appendLinksIcons(parent, indexedDatabase);
     }
 
-    private void appendStandardCitation(final Element parent) {
-        final String author = safe(author());
-        if (is(author)) {
-            t(parent, author);
+    private static final String TEI_NAMESPACE = "http://www.tei-c.org/ns/1.0";
+
+    private Node buildStandardCitationAsTei() throws IOException, TransformerException, ParserConfigurationException, SAXException {
+        final boolean published = !safe(pub()).isBlank();
+        final String sAuthor = safe(author());
+        final String sTitle = safe(title());
+        final String sPlace = no(safe(placePub()), "place");
+        final String sPub = no(safe(pub()), "publisher");
+        final String sDate = no(safe(datePub()), "date");
+        final String sPage = safe(page());
+
+
+        final XsltPipeline p = new XsltPipeline();
+        p.dom();
+        final Node doc = p.accessDom();
+        final Element eTEI = te(doc, "TEI");
+        final Element eTeiHeader = te(eTEI, "teiHeader");
+        final Element eFileDesc = te(eTeiHeader, "fileDesc");
+        te(eFileDesc, "titleStmt");
+        te(eFileDesc, "publicationStmt");
+        te(eFileDesc, "sourceDesc");
+        final Element eText = te(eTEI, "text");
+        final Element eBody = te(eText, "body");
+        final Element eAb = te(eBody, "ab");
+        final Element eBibl = te(eAb, "bibl");
+
+        final Element eAuthor = te(eBibl, "author");
+        eAuthor.setTextContent(sAuthor);
+
+        if (is(sAuthor) && is(sTitle)) {
+            t(eBibl, ", ");
         }
 
-        final String title = safe(title());
-        if (is(author) && is(title)) {
-            t(parent, ", ");
-        }
-
-        final String place = no(safe(placePub()), "place");
-        final String pub = no(safe(pub()), "publisher");
-        final String date = no(safe(datePub()), "date");
-
-        if (is(title)) {
-            final boolean published = !safe(pub()).isBlank();
+        if (is(sTitle)) {
+            final Element eTitle = te(eBibl, "title");
             if (published) {
-                final Element cite = e(parent, "cite");
-                cite.setTextContent(title());
+                eTitle.setAttribute("level", "m");
+                eTitle.setTextContent(sTitle);
             } else {
-                final Element unpub = e(parent, "span");
-                unpub.setTextContent("\u201C"+title()+"\u201D");
+                eTitle.setAttribute("level", "u");
+                eTitle.setTextContent("\u201C"+sTitle+"\u201D");
             }
         }
 
-        t(parent, links(String.format(" (%s: %s, %s)", place, pub, date)));
+        if (published) {
+            t(eBibl, " (");
+            final Element ePubPlace = te(eBibl, "pubPlace");
+            ePubPlace.setTextContent(sPlace);
+            t(eBibl, ": ");
+            final Element ePublisher = te(eBibl, "publisher");
+            ePublisher.setTextContent(sPub);
+            t(eBibl, ": ");
+            final Element eDate = te(eBibl, "date");
+            eDate.setTextContent(sDate);
+            t(eBibl, ")");
+        }
 
-        final String p = safe(page());
-        if (is(p)) {
-            t(parent, ", "+links(p));
-            if (!p.endsWith(".")) {
-                t(parent, ".");
+        if (is(sPage)) {
+            t(eBibl, ", ");
+            final Element eCitedRange = te(eBibl, "citedRange");
+            eCitedRange.setTextContent(sPage);
+            if (!sPage.endsWith(".")) {
+                t(eBibl, ".");
             }
         } else {
-            t(parent, ".");
+            t(eBibl, ".");
         }
+
+        TeiToXhtml5.runPipeline(p);
+
+        return nodeFromDoc(p.accessDom());
     }
 
     private void appendLinksIcons(final Element parent, final IndexedDatabase indexedDatabase) {
@@ -150,9 +185,23 @@ public record EventSource(
         }
     }
 
-    public static String links(final String s) {
-        return s.
-            replaceAll("\\b(\\w+?://\\S+?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"$1\">$1</a>$2").
-            replaceAll("([^/.]www\\.[a-zA-Z]\\S*?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"http://$1\">$1</a>$2");
+//    TODO links
+//    public static String links(final String s) {
+//        return s.
+//            replaceAll("\\b(\\w+?://\\S+?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"$1\">$1</a>$2").
+//            replaceAll("([^/.]www\\.[a-zA-Z]\\S*?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"http://$1\">$1</a>$2");
+//    }
+
+    public static Element te(final Node parent, final String tag) {
+        final Document dom;
+        if (parent instanceof Document) {
+            dom = (Document)parent;
+        } else {
+            dom = parent.getOwnerDocument();
+        }
+
+        final Element element = dom.createElementNS(TEI_NAMESPACE, tag);
+        parent.appendChild(element);
+        return element;
     }
 }
