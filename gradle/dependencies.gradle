@@ -23,6 +23,7 @@ dependencies {
 
     implementation group: "org.apache.tika", name: "tika-parsers", version: 'latest.release'
     implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
+    implementation group: 'org.nibor.autolink', name: 'autolink', version: 'latest.release'
 
     runtimeOnly group: 'xerces', name: 'xercesImpl', version: 'latest.release', {
         exclude group: 'xml-apis'

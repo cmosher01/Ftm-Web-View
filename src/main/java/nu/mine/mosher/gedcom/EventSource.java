@@ -83,8 +83,6 @@ public record EventSource(
         appendLinksIcons(parent, indexedDatabase);
     }
 
-    private static final String TEI_NAMESPACE = "http://www.tei-c.org/ns/1.0";
-
     private Node buildStandardCitationAsTei() throws IOException, TransformerException, ParserConfigurationException, SAXException {
         final boolean published = !safe(pub()).isBlank();
         final String sAuthor = safe(author());
@@ -130,11 +128,11 @@ public record EventSource(
         if (published) {
             t(eBibl, " (");
             final Element ePubPlace = te(eBibl, "pubPlace");
-            ePubPlace.setTextContent(sPlace);
+            textWithTeiLinks(ePubPlace, sPlace);
             t(eBibl, ": ");
-            final Element ePublisher = te(eBibl, "publisher");
-            ePublisher.setTextContent(sPub);
-            t(eBibl, ": ");
+            final Element ePub = te(eBibl, "publisher");
+            textWithTeiLinks(ePub, sPub);
+            t(eBibl, ", ");
             final Element eDate = te(eBibl, "date");
             eDate.setTextContent(sDate);
             t(eBibl, ")");
@@ -188,25 +186,5 @@ public record EventSource(
                 ancestry.appendAsAHref(parent);
             }
         }
-    }
-
-//    TODO links
-//    public static String links(final String s) {
-//        return s.
-//            replaceAll("\\b(\\w+?://\\S+?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"$1\">$1</a>$2").
-//            replaceAll("([^/.]www\\.[a-zA-Z]\\S*?)(\\s|[<>{}\"|\\\\^`\\]]|$)", "<a href=\"http://$1\">$1</a>$2");
-//    }
-
-    public static Element te(final Node parent, final String tag) {
-        final Document dom;
-        if (parent instanceof Document) {
-            dom = (Document)parent;
-        } else {
-            dom = parent.getOwnerDocument();
-        }
-
-        final Element element = dom.createElementNS(TEI_NAMESPACE, tag);
-        parent.appendChild(element);
-        return element;
     }
 }

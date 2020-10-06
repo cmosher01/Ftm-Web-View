@@ -1,6 +1,7 @@
 package nu.mine.mosher.gedcom;
 
 import nu.mine.mosher.xml.*;
+import org.nibor.autolink.*;
 import org.slf4j.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
@@ -16,9 +17,46 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class XmlUtils {
-    public static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
-
     private static final Logger LOG = LoggerFactory.getLogger(XmlUtils.class);
+
+    public static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+    public static final String TEI_NAMESPACE = "http://www.tei-c.org/ns/1.0";
+
+    public static Element te(final Node parent, final String tag) {
+        final Document dom;
+        if (parent instanceof Document) {
+            dom = (Document)parent;
+        } else {
+            dom = parent.getOwnerDocument();
+        }
+
+        final Element element = dom.createElementNS(TEI_NAMESPACE, tag);
+        parent.appendChild(element);
+        return element;
+    }
+
+    public static void textWithTeiLinks(final Element parent, final String text) {
+        final Iterable<Span> spans = LinkExtractor.builder().build().extractSpans(text);
+        boolean wasLink = false;
+        for (Span span : spans) {
+            final String s = text.substring(span.getBeginIndex(), span.getEndIndex());
+            if (span instanceof LinkSpan) {
+                // span is a URL
+                final Element ref = te(parent, "ref");
+                ref.setAttribute("target", s);
+                wasLink = true;
+            } else {
+                // span is plain text before/after link
+                if (wasLink) {
+                    if (!s.startsWith(" ")) {
+                        t(parent, " ");
+                    }
+                    wasLink = false;
+                }
+                t(parent, s);
+            }
+        }
+    }
 
     public static Element e(final Node parent, final String tag) {
         final Document dom;
@@ -159,11 +197,12 @@ public class XmlUtils {
     }
 
     private static String wrapTeiBibl(final String bibl) {
+        final String trimmed = bibl.replaceFirst("^(<bibl>)\\s+", "$1");
         return wrapTeiText(
             "<text>" +
             "<body>" +
             "<ab>" +
-            bibl +
+            trimmed +
             "</ab>" +
             "</body>" +
             "</text>");
