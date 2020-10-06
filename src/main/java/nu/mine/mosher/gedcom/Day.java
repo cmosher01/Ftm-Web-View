@@ -144,7 +144,7 @@ public class Day implements Comparable<Day> {
 
         @Override
         public String toString() {
-            // TODO XML string
+            // TODO XML string (to dim unknown date parts)
             if (this.unknown) {
                 return "\u00d7\u00d7\u00d7\u00d7\u2012\u00d7\u00d7\u2012\u00d7\u00d7";
             }
@@ -223,6 +223,9 @@ public class Day implements Comparable<Day> {
             return Objects.hash(this.flags, this.unknown, this.d);
         }
 
+        // TODO parameterize years for recency?
+        // TODO implement privatization based on database columns in tables:
+        // Person, Relationship, ChildRelationship, Fact, Note, MediaLink, MediaFile
         public boolean isRecent() {
             return  !this.unknown && LocalDate.now().minusYears(110).compareTo(this.ld) < 0;
         }

@@ -44,9 +44,14 @@ public record EventSource(
     String weblink
 ) {
     private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
+    private static final Random rand = new Random();
 
     public EventSource() {
         this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null);
+    }
+
+    public EventSource(final String note) {
+        this(0,null,null,rand.nextInt(),null,null,note,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package nu.mine.mosher.gedcom;
 
 import jakarta.servlet.http.*;
-import opennlp.tools.dictionary.Index;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
@@ -26,6 +25,16 @@ import static nu.mine.mosher.gedcom.ContextInitializer.SQL_SESSION_FACTORY;
 import static nu.mine.mosher.gedcom.HtmlUtils.*;
 import static nu.mine.mosher.gedcom.StringUtils.safe;
 import static nu.mine.mosher.gedcom.XmlUtils.*;
+
+/*
+TODO tasks
+TODO tags
+TODO "cite this source" on person page, source page
+TODO color by fact type
+TODO color person names?
+TODO submitter/copyright?
+TODO show last mod date of database, person?
+ */
 
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
@@ -536,6 +545,9 @@ public class FtmViewerServlet extends HttpServlet {
 
     private Document pagePerson(Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
+        final Footnotes<EventSource> footnotes = new Footnotes<>();
+
+
 
         final Document dom = XmlUtils.empty();
 
@@ -561,16 +573,16 @@ public class FtmViewerServlet extends HttpServlet {
         e(body, "hr");
         fragPersonParents(indexedDatabase, indexedPerson, body);
         e(body, "hr");
-        fragName(indexedDatabase, indexedPerson, person, body);
+        fragName(indexedDatabase, indexedPerson, person, body,  footnotes);
         e(body, "hr");
-
-        final Footnotes<EventSource> footnotes = new Footnotes<>();
         fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
         fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
         e(body, "hr");
         fragFootnotes(indexedDatabase, body, footnotes);
         e(body, "hr");
         fragFooter(body);
+
+
 
         return dom;
     }
@@ -596,8 +608,6 @@ public class FtmViewerServlet extends HttpServlet {
             footnum.setTextContent(formatFootnum(i, n));
 
             footnotes.getFootnote(i).appendTo(footnote, indexedDatabase);
-
-            // TODO show transcripts each on their own page?
         }
     }
 
@@ -703,7 +713,7 @@ public class FtmViewerServlet extends HttpServlet {
             orElse("\u00a0\u2e3a"));
     }
 
-    private static void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body) {
+    private void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final Element header = e(body, "header");
         final Element h1 = e(header, "h1");
         final Element sup = e(h1, "sup");
@@ -714,6 +724,27 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element personName = e(h1, "span");
         personName.setTextContent(person.nameWithSlashes());
+
+
+        final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
+
+        fragNoteRefs(indexedDatabase, linkPerson, h1, footnotes);
+    }
+
+    private void fragNoteRefs(final IndexedDatabase indexedDatabase, final FtmLink link, final Element parent, final Footnotes<EventSource> footnotes) throws SQLException {
+        final List<Note> notes;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final NotesMap map = session.getMapper(NotesMap.class);
+            notes = map.select(link);
+        }
+
+        notes.forEach(s -> {
+            final int footnum = footnotes.putFootnote(new EventSource(s.note()));
+            final Element sup = e(parent, "sup");
+            final Element footref = e(sup, "a");
+            footref.setAttribute("href", "#f" + footnum);
+            footref.setTextContent("[" + footnum + "]");
+        });
     }
 
     private static void fragFooter(final Element body) {
@@ -837,7 +868,11 @@ public class FtmViewerServlet extends HttpServlet {
                         a.setTextContent(partnership.name());
                     }
 
-                    fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Relationship, partnership.id()), section, footnotes);
+                    final FtmLink linkRelationship = new FtmLink(FtmLinkTableID.Relationship, partnership.id());
+
+                    fragNoteRefs(indexedDatabase, linkRelationship, section, footnotes);
+
+                    fragEvents(role, indexedDatabase, linkRelationship, section, footnotes);
 
                     fragPersonPartnershipChildren(indexedDatabase, indexedPerson, partnership.id(), section);
 

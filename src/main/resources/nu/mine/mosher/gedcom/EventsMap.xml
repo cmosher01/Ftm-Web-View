@@ -16,6 +16,6 @@
             Fact.LinkTableID = #{table.id} AND
             Fact.LinkID = #{id}
         ORDER BY
-            Fact.DateSort1
+            Fact.DateSort1, Fact.DateSort2
     </select>
 </mapper>

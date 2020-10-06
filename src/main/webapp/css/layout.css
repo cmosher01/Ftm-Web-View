@@ -58,6 +58,11 @@ tr:nth-child(5n) {
     font-size: smaller;
 }
 
+h1 > sup {
+    font-weight: normal;
+    font-size: small;
+}
+
 .nowrap {
     white-space: nowrap;
 }

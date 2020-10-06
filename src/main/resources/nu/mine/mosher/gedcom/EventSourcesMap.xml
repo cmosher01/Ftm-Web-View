@@ -26,6 +26,8 @@
             </collection>
         </collection>
     </resultMap>
+    <!-- TODO Source +-0< Note -->
+    <!-- TODO MediaFile +-0< Note -->
     <select id="select" resultMap="mapEventWithSources" parameterType="nu.mine.mosher.gedcom.FtmLink">
         SELECT
             Fact.ID AS pkidFact,

@@ -5,7 +5,7 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.*;
 import org.jdom2.JDOMException;
 import org.jdom2.input.sax.SAXHandler;
-import org.jdom2.output.DOMOutputter;
+import org.jdom2.output.*;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
 import org.jsoup.nodes.*;
@@ -68,6 +68,7 @@ public class HtmlUtils {
         parser.parse(instream, handler, metadata, new ParseContext());
         final org.jdom2.Document jdoc = handler.getDocument();
         final DOMOutputter domOutputter = new DOMOutputter();
+        domOutputter.setFormat(Format.getCompactFormat());
         final org.w3c.dom.Node tikaXml = domOutputter.output(jdoc).getFirstChild();
         return XmlUtils.cleanTikaXml(tikaXml);
     }

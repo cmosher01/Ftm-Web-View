@@ -9,6 +9,7 @@
         </constructor>
     </resultMap>
 
+    <!-- TODO how to get/display media attached directly to a Person? -->
     <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
         SELECT
             Person.PersonGUID AS id,
