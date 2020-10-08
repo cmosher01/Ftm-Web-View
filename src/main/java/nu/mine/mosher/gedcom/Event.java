@@ -8,6 +8,7 @@ import java.util.Objects;
 import static nu.mine.mosher.gedcom.StringUtils.safe;
 
 // TODO links for "FamilySearch ID", "WikiTree ID", etc. For others, see: https://en.wikipedia.org/wiki/List_of_genealogy_databases
+// TODO style Name
 public record Event(int pkid, Day date, Place place, String type, String description) implements Comparable<Event> {
     private static final Logger LOG =  LoggerFactory.getLogger(Event.class);
 

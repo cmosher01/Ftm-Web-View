@@ -7,6 +7,7 @@ import org.apache.ibatis.session.*;
 import org.apache.tika.exception.TikaException;
 import org.jdom2.JDOMException;
 import org.slf4j.*;
+import org.sqlite.SQLiteConfig;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -723,7 +724,7 @@ public class FtmViewerServlet extends HttpServlet {
         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
         final Element personName = e(h1, "span");
-        personName.setTextContent(person.nameWithSlashes());
+        personName.setTextContent(person.nameWithSlashes());// TODO style name
 
 
         final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
@@ -793,8 +794,10 @@ public class FtmViewerServlet extends HttpServlet {
                     nature.setTextContent("(" + parent.nature() + ") ");
                 }
                 final Element a = e(td, "a");
+                a.setAttribute("class", "highlink");
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(parent.name());
+                // TODO "has ancestors" indication
             }
         }
     }
@@ -864,6 +867,7 @@ public class FtmViewerServlet extends HttpServlet {
                         final Element span = e(section, "span");
                         span.setTextContent("partner: ");
                         final Element a = e(section, "a");
+                        a.setAttribute("class", "highlink");
                         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                         a.setTextContent(partnership.name());
                     }
@@ -912,8 +916,11 @@ public class FtmViewerServlet extends HttpServlet {
                     span.setTextContent("("+child.nature()+") ");
                 }
                 final Element a = e(td, "a");
+                a.setAttribute("class", "highlink");
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
-                a.setTextContent(child.name()); // TODO child birth dates
+                a.setTextContent(child.name());
+                // TODO child birth dates
+                // TODO "has descendants" indication
             }
         }
     }
@@ -985,7 +992,9 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private static Connection openConnectionFor(final IndexedDatabase indexedDatabase) throws SQLException {
-        final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file());
+        final SQLiteConfig config = new SQLiteConfig();
+        config.setReadOnly(true);
+        final Connection conn = config.createConnection("jdbc:sqlite:"+indexedDatabase.file());
         LOG.debug("Opened JDBC Connection [{}], db={}, auto-commit={}, transaction-isolation={}", conn, indexedDatabase.file(), conn.getAutoCommit(), conn.getTransactionIsolation());
         return conn;
     }

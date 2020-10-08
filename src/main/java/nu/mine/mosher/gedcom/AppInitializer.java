@@ -51,8 +51,6 @@ public class AppInitializer {
         } else {
             LOG.info("JDBC driver logger not found.");
         }
-
-        // TODO log anything from this??? driverJdbc.getPropertyInfo();
     }
 
     private static void initMybatisConfig(final Configuration config) {

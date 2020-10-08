@@ -37,16 +37,19 @@ public class XmlUtils {
 
     public static void textWithTeiLinks(final Element parent, final String text) {
         final Iterable<Span> spans = LinkExtractor.builder().build().extractSpans(text);
+
         boolean wasLink = false;
         for (Span span : spans) {
             final String s = text.substring(span.getBeginIndex(), span.getEndIndex());
-            if (span instanceof LinkSpan) {
-                // span is a URL
+
+            if (span instanceof LinkSpan link) {
                 final Element ref = te(parent, "ref");
-                ref.setAttribute("target", s);
+                final String fixed = (link.getType() == LinkType.EMAIL && !s.startsWith("mailto:")) ? ("mailto:" + s) : s;
+                ref.setAttribute("target", fixed);
                 wasLink = true;
+
             } else {
-                // span is plain text before/after link
+
                 if (wasLink) {
                     if (!s.startsWith(" ")) {
                         t(parent, " ");

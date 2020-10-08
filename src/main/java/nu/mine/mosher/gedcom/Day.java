@@ -110,7 +110,6 @@ public class Day implements Comparable<Day> {
     }
 
 
-    // TODO: BC dates: year negative 2 equals 3 BC
     private static class FlaggedDate implements Comparable<FlaggedDate> {
         private final long flags;
         private final boolean unknown;

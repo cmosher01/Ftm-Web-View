@@ -25,10 +25,9 @@ a {
     color: unset;
 }
 
-/* but highlight when hovering over links */
-a:hover {
-    color: var(--sol-base02);
-    background-color: var(--sol-cyan);
+hr {
+    border-width: thin 0 0 0;
+    border-style: solid;
 }
 
 /* highlight targets */
@@ -77,6 +76,24 @@ h1 > sup {
     display: block;
     margin-block-start: unset;
     margin-block-end: unset;
+}
+
+/* highlighted text that's also a link */
+.highlink {
+    color: var(--sol-violet);
+}
+
+.highlink:hover {
+    border: 2px solid var(--sol-violet);
+    margin: -2px;
+    border-radius: 0.2em;
+}
+
+/* non-highlighted link */
+.link:hover {
+    border: 2px solid var(--sol-violet);
+    margin: -2px;
+    border-radius: 0.2em;
 }
 
 /* float styles for two-column layout */
