@@ -62,6 +62,7 @@ public class AppInitializer {
         config.getTypeHandlerRegistry().register(FtmPlaceTypeHandler.class);
         config.getTypeHandlerRegistry().register(FtmNatureTypeHandler.class);
         config.getTypeHandlerRegistry().register(FtmRelationshipStatusTypeHandler.class);
+        config.getTypeHandlerRegistry().register(FtmFactTypeTagTypeHandler.class);
 
         config.addMapper(RefnMap.class);
         config.addMapper(RefnReverseMap.class);

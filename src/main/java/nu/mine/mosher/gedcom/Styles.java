@@ -13,7 +13,11 @@ public final class Styles {
         nowrap("rend-nowrap"),
         indent("rend-indent"),
         hanging("rend-hanging"),
-        eqlines("rend-eqlines");
+        eqlines("rend-eqlines"),
+        hi0("rend-hi-0"),
+        hi1("rend-hi-1"),
+        hi2("rend-hi-2"),
+        hi3("rend-hi-3");
 
         private final String cssClass;
 

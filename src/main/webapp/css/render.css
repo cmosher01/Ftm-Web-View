@@ -19,3 +19,19 @@
 .rend-eqlines {
     line-height: 1.4;
 }
+
+.rend-hi-0 {
+    color: var(--sol-violet);
+}
+
+.rend-hi-1 {
+    color: var(--sol-magenta);
+}
+
+.rend-hi-2 {
+    color: var(--sol-cyan);
+}
+
+.rend-hi-3 {
+    color: var(--sol-yellow);
+}

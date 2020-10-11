@@ -6,6 +6,7 @@
             Fact.ID AS pkid,
             Fact.Date AS date,
             Place.Name AS place,
+            FactType.Tag AS tag,
             FactType.Name AS type,
             Fact.Text AS description
         FROM

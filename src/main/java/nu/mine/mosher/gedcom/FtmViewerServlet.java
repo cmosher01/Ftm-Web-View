@@ -32,11 +32,9 @@ import static nu.mine.mosher.gedcom.XmlUtils.*;
 TODO tasks
 TODO tags
 TODO "cite this source" on person page, source page
-TODO color by fact type
-TODO color person names?
-TODO submitter/copyright?
-TODO show last mod date of database, person?
- */
+TODO submitter/copyright
+TODO show last mod date of database, person
+*/
 
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
@@ -668,10 +666,13 @@ public class FtmViewerServlet extends HttpServlet {
     private void fragEvent(final Auth.RbacRole role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) {
         if (role.authorized() || !event.isRecent()) {
             final Element tr = e(tbody, "tr");
+
             final Element tdDate = e(tr, "td");
             Styles.add(tdDate, Styles.Render.nowrap);
-            final Element span = e(tdDate, "span");
-            ifPresent(event.date(), span);
+            final Element spanDate = e(tdDate, "span");
+            ifPresent(event.date(), spanDate);
+            Styles.add(spanDate, getEventHighlight(event));
+
             final Element tdPlace = e(tr, "td");
             final Place place = event.place();
             if (place.isBlank()) {
@@ -679,9 +680,11 @@ public class FtmViewerServlet extends HttpServlet {
             } else {
                 place.appendTo(tdPlace);
             }
+
             final Element tdDescription = e(tr, "td");
             final Element spanType = e(tdDescription, "span");
             ifPresent(event.type(), spanType);
+            Styles.add(spanType, getEventHighlight(event));
             if (Objects.nonNull(event.description()) && !event.description().isBlank()) {
                 final Element spanSep = e(tdDescription, "span");
                 spanSep.setTextContent(": ");
@@ -700,6 +703,15 @@ public class FtmViewerServlet extends HttpServlet {
                 });
             }
         }
+    }
+
+    private Styles.Render getEventHighlight(final Event event) {
+        return
+            event.isPrimary() ?
+                Styles.Render.hi1 :
+            event.isSecondary() ?
+                Styles.Render.hi2 :
+                Styles.Render.hi3;
     }
 
     private static void abbreviatePlacesOf(final List<Event> events) {
@@ -742,10 +754,9 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element personName = e(h1, "span");
         personName.setTextContent(person.nameWithSlashes());// TODO style name
-
+        Styles.add(personName, Styles.Render.hi0);
 
         final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
-
         fragNoteRefs(indexedDatabase, linkPerson, h1, footnotes);
     }
 
