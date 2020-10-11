@@ -1,127 +1,25 @@
-@import url("https://mosher.mine.nu/uniwebfonts/css/solarized.css");
-@import url("https://mosher.mine.nu/uniwebfonts/css/fonts.css");
-@import url("https://mosher.mine.nu/tei/tei.css");
-
-/* don't start div's or p's on a new line */
-div,
-p {
-    display: inline;
-}
-
-/* unordered lists: no bullets, no padding start */
-ul {
-    list-style-type: none;
-    padding-inline-start: unset;
-}
-
 /* columnar lists */
-ul.columnar {
+.cn {
     column-width: 12em;
 }
 
-/* don't underline or dis-color links */
-a {
-    text-decoration: unset;
-    color: unset;
+
+
+/* grid styles for two-column layout */
+.c2-wrap {
+    display: grid;
 }
 
-hr {
-    border-width: thin 0 0 0;
-    border-style: solid;
-}
-
-/* highlight targets */
-:target {
-    color: var(--sol-base03);
-    background-color: var(--sol-base2);
-}
-
-table {
-    border-collapse: collapse;
-}
-
-tbody {
-    vertical-align: baseline;
-}
-
-/* make rows in table easier to follow when reading across the page */
-tr:nth-child(5n) {
-    border-bottom: thin dotted var(--sol-base1);
-}
-
-
-
-
-/* some text styles */
-.smaller {
-    font-size: smaller;
-}
-
-h1 > sup {
-    font-weight: normal;
-    font-size: small;
-}
-
-.nowrap {
-    white-space: nowrap;
-}
-
-.indent {
-    text-indent: 2em;
-}
-
-.hanging {
-    text-indent: -2em;
-    padding-left: 2em;
-    display: block;
-    margin-block-start: unset;
-    margin-block-end: unset;
-}
-
-/* highlighted text that's also a link */
-.highlink {
-    color: var(--sol-violet);
-}
-
-.highlink:hover {
-    border: 2px solid var(--sol-violet);
-    margin: -2px;
-    border-radius: 0.2em;
-}
-
-/* non-highlighted link */
-.link:hover {
-    border: 2px solid var(--sol-violet);
-    margin: -2px;
-    border-radius: 0.2em;
-}
-
-/* float styles for two-column layout */
-.left {
-    float: left;
+.c2-left {
+    grid-column: 1;
     text-align: left;
-    width: 49%;
 }
 
-.right {
-    float: right;
+.c2-right {
+    grid-column: 2;
     text-align: right;
-    width: 49%;
 }
 
-.clear:after {
-    content: '';
-    display: block;
-    clear: both;
-}
-
-/*
-    minimal styling for Google's "Sign in" button
-    (Google's are currently blocked by CSP.)
-*/
-.g-signin2,
-#signout {
-    border: thin solid var(--sol-base00);
-    padding: 3px;
-    cursor: pointer;
+.layout-indent {
+    margin-left: 2em;
 }

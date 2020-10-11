@@ -1,0 +1,33 @@
+@import url("global.css");
+@import url("tei.css.d");
+
+/*
+    Override block as inline, because we only use TEI in
+    footnotes, which are always one paragraph.
+    Same for TIKA conversions.
+*/
+.tei-block,
+.tika-html, .tika-html * {
+    display: inline;
+}
+
+[tei=ref] {
+    word-break: break-all;
+}
+
+/* make rows in table easier to follow when reading across the page */
+tr:nth-child(5n) {
+    border-bottom: thin dotted var(--sol-base1);
+}
+
+/* fix superscripts in h1 */
+h1 sup {
+    font-weight: normal;
+    font-size: small;
+}
+
+/* highlight targets */
+:target {
+    color: var(--sol-base03);
+    background-color: var(--sol-base2);
+}

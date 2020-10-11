@@ -1,6 +1,7 @@
 package nu.mine.mosher.gedcom;
 
 import jakarta.servlet.http.*;
+import nu.mine.mosher.xml.TeiToXhtml5;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
@@ -58,6 +59,8 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (request.getServletPath().equals("/")) {
             dom = handleRequest(request, response);
+        } else if (request.getServletPath().endsWith(".d")) {
+            handleDynamicResourceRequest(request, response);
         } else {
             LOG.warn("Unexpected servlet path: {}", request.getServletPath());
             LOG.info("requested resource not found");
@@ -70,6 +73,16 @@ public class FtmViewerServlet extends HttpServlet {
             XmlUtils.serialize(dom.get(), out, false, true);
             out.flush();
             out.close();
+        }
+    }
+
+    private void handleDynamicResourceRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (request.getServletPath().equalsIgnoreCase("/css/tei.css.d")) {
+            response.setContentType("text/css");
+            final String cssTei = TeiToXhtml5.getCss();
+            final PrintWriter out = response.getWriter();
+            out.print(cssTei);
+            out.flush();
         }
     }
 
@@ -335,7 +348,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/layout.css");
+        css.setAttribute("href", "./css/page-dbs.css");
 
         addAuthHead(head);
 
@@ -397,7 +410,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/layout.css");
+        css.setAttribute("href", "./css/page-people.css");
 
         addAuthHead(head);
 
@@ -417,13 +430,12 @@ public class FtmViewerServlet extends HttpServlet {
         final Element section = e(body, "section");
 
         final Element ul = e(section, "ul");
-        ul.setAttribute("class", "columnar");
+        Styles.add(ul, Styles.Layout.cn);
         for (final IndexedPerson indexedPerson : list) {
             if (role.authorized() || !indexedPerson.isRecent()) {
                 final Element li = e(ul, "li");
-                li.setAttribute("class", "hanging");
-                final Element p = e(li, "p");
-                final Element ap = e(p, "a");
+                Styles.add(li, Styles.Render.hanging);
+                final Element ap = e(li, "a");
                 ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
                 ap.setTextContent(indexedPerson.name());
             }
@@ -457,7 +469,8 @@ public class FtmViewerServlet extends HttpServlet {
         // sign-in button
         e = e(nav, "a");
         e.setAttribute("id", "gedcom-web-view-google-signin");
-        e.setAttribute("class", "g-signin2");
+        Styles.add(e, "g-signin2");
+        Styles.add(e, Styles.Links.button);
 
         if (role.loggedIn()) {
             e = e(nav, "span");
@@ -473,20 +486,21 @@ public class FtmViewerServlet extends HttpServlet {
 
         // sign-out button
         e = e(nav, "a");
-        e.setAttribute("id", "signout");
+        Styles.add(e, Styles.Links.button);
         e.setTextContent("Sign\u00A0out");
     }
 
     private void fragNav(Auth.RbacRole role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException {
         final Element header = e(parent, "header");
         final Element nav = e(header, "nav");
-        nav.setAttribute("class", "clear");
+        Styles.add(nav, Styles.Layout.c2Wrap);
 
         final Element divL = e(nav, "div");
-        divL.setAttribute("class", "left");
+        Styles.add(divL, Styles.Layout.c2Left);
 
-        Element sp = e(divL, "span");
-        sp.setTextContent(" ");
+        Element sp;
+//        sp = e(divL, "span");
+//        sp.setTextContent(" ");
         final Element a = e(divL, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
@@ -497,8 +511,8 @@ public class FtmViewerServlet extends HttpServlet {
             final Element a2 = e(divL, "a");
             a2.setAttribute("href", urlQueryTree(indexedDatabase));
             a2.setTextContent("{" + indexedDatabase.file().getName() + "}");
-            sp = e(divL, "span");
-            sp.setTextContent(" ");
+//            sp = e(divL, "span");
+//            sp.setTextContent(" ");
         }
 
         LOG.debug("source database: {}", indexedDatabase);
@@ -515,7 +529,7 @@ public class FtmViewerServlet extends HttpServlet {
                         LOG.debug("Found person {} in alternate tree {}", optPerson.get(), db);
                         if (!labeled) {
                             final Element span = e(divL, "span");
-                            span.setTextContent("see also:");
+                            span.setTextContent(" see also:");
                             labeled = true;
                         }
                         sp = e(divL, "span");
@@ -523,8 +537,8 @@ public class FtmViewerServlet extends HttpServlet {
                         final Element a3 = e(divL, "a");
                         a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
                         a3.setTextContent("{" + db.file().getName() + "}");
-                        sp = e(divL, "span");
-                        sp.setTextContent(" ");
+//                        sp = e(divL, "span");
+//                        sp.setTextContent(" ");
                     }
                 }
             }
@@ -534,7 +548,7 @@ public class FtmViewerServlet extends HttpServlet {
 
 
         final Element divR = e(nav, "div");
-        divR.setAttribute("class", "right");
+        Styles.add(divR, Styles.Layout.c2Right);
 
         addAuthNav(role, divR);
     }
@@ -564,7 +578,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/layout.css");
+        css.setAttribute("href", "./css/page-person.css");
 
         addAuthHead(head);
 
@@ -595,7 +609,6 @@ public class FtmViewerServlet extends HttpServlet {
         }
 
         final Element section = e(body, "section");
-        section.setAttribute("class", "smaller indent");
         final Element ul = e(section, "ul");
 
         for (int i = 1; i <= n; ++i) {
@@ -603,6 +616,9 @@ public class FtmViewerServlet extends HttpServlet {
 
             final Element footnote = e(li, "p");
             footnote.setAttributeNS(XHTML_NAMESPACE, "id", String.format("f%d", i));
+            Styles.add(footnote, Styles.Render.smaller);
+            Styles.add(footnote, Styles.Render.indent);
+            Styles.add(footnote, Styles.Render.eqlines);
 
             final Element sup = e(footnote, "sup");
             final Element footnum = e(sup, "span");
@@ -642,6 +658,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element section = e(body, "section");
         final Element table = e(section, "table");
+        Styles.add(table, Styles.Layout.indent);
         final Element tbody = e(table, "tbody");
         for (final Event event : events) {
             fragEvent(role, footnotes, mapEventSources, tbody, event);
@@ -652,7 +669,7 @@ public class FtmViewerServlet extends HttpServlet {
         if (role.authorized() || !event.isRecent()) {
             final Element tr = e(tbody, "tr");
             final Element tdDate = e(tr, "td");
-            tdDate.setAttribute("class", "nowrap");
+            Styles.add(tdDate, Styles.Render.nowrap);
             final Element span = e(tdDate, "span");
             ifPresent(event.date(), span);
             final Element tdPlace = e(tr, "td");
@@ -740,11 +757,14 @@ public class FtmViewerServlet extends HttpServlet {
         }
 
         notes.forEach(s -> {
-            final int footnum = footnotes.putFootnote(new EventSource(s.note()));
-            final Element sup = e(parent, "sup");
-            final Element footref = e(sup, "a");
-            footref.setAttribute("href", "#f" + footnum);
-            footref.setTextContent("[" + footnum + "]");
+            final String note = safe(s.note());
+            if (!note.isBlank()) {
+                final int footnum = footnotes.putFootnote(new EventSource(note));
+                final Element sup = e(parent, "sup");
+                final Element footref = e(sup, "a");
+                footref.setAttribute("href", "#f" + footnum);
+                footref.setTextContent("[" + footnum + "]");
+            }
         });
     }
 
@@ -794,7 +814,7 @@ public class FtmViewerServlet extends HttpServlet {
                     nature.setTextContent("(" + parent.nature() + ") ");
                 }
                 final Element a = e(td, "a");
-                a.setAttribute("class", "highlink");
+                Styles.add(a, Styles.Links.hilite);
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(parent.name());
                 // TODO "has ancestors" indication
@@ -867,7 +887,7 @@ public class FtmViewerServlet extends HttpServlet {
                         final Element span = e(section, "span");
                         span.setTextContent("partner: ");
                         final Element a = e(section, "a");
-                        a.setAttribute("class", "highlink");
+                        Styles.add(a, Styles.Links.hilite);
                         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                         a.setTextContent(partnership.name());
                     }
@@ -895,7 +915,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Element ch = e(section, "span");
         ch.setTextContent("children: ");
         final Element table = e(section, "table");
-        table.setAttribute("class", "indent");
+        Styles.add(table, Styles.Layout.indent);
         final Element tbody = e(table, "tbody");
         if (Objects.isNull(children) || children.isEmpty()) {
             final Element tr = e(tbody, "tr");
@@ -916,7 +936,7 @@ public class FtmViewerServlet extends HttpServlet {
                     span.setTextContent("("+child.nature()+") ");
                 }
                 final Element a = e(td, "a");
-                a.setAttribute("class", "highlink");
+                Styles.add(a, Styles.Links.hilite);
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(child.name());
                 // TODO child birth dates
@@ -944,13 +964,9 @@ public class FtmViewerServlet extends HttpServlet {
         final Element title = e(head, "title");
         title.setTextContent(eventSource.title());
 
-        final Element css = e(head, "link");
-        css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/layout.css");
-
         final Element css2 = e(head, "link");
         css2.setAttribute("rel", "stylesheet");
-        css2.setAttribute("href", "./css/source.css");
+        css2.setAttribute("href", "./css/page-source.css");
 
         addAuthHead(head);
 

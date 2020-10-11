@@ -1,0 +1,28 @@
+/* plain and simple horiz. rule */
+hr {
+    border-width: 1px 0 0 0;
+    border-style: dotted;
+}
+
+/* unordered lists: no bullets, no padding start */
+ul {
+    list-style-type: none;
+    padding-inline-start: unset;
+}
+
+/* standard table resets */
+table {
+    border-collapse: collapse;
+}
+
+tbody {
+    vertical-align: baseline;
+}
+
+td {
+    padding: 0 1em 0 0;
+}
+
+sup, sub {
+    line-height: 100%;
+}

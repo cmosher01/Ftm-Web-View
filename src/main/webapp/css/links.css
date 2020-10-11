@@ -1,0 +1,53 @@
+/*
+    For all links by default:
+    Don't underline or color normally,
+    but when hovering, change color, and outline.
+*/
+a {
+    text-decoration: unset;
+    color: unset;
+    border-width: 1px;
+    margin: -1px;
+    border-style: solid;
+    border-radius: 0.2em;
+    border-color: transparent;
+}
+
+a:hover {
+    color: var(--sol-violet);
+    border-color: var(--sol-violet);
+}
+
+/* highlighted text that's also a link */
+.link-hilite {
+    text-decoration: unset;
+    color: var(--sol-violet);
+    border-width: 1px;
+    margin: -1px;
+    border-style: solid;
+    border-radius: 0.2em;
+    border-color: transparent;
+}
+
+.link-hilite:hover {
+    border-color: var(--sol-violet);
+}
+
+/* looks like pushable button */
+.button {
+    border: 1px solid var(--sol-base00);
+    border-radius: 0.2em;
+    padding: 3px;
+    display: inline;
+}
+
+.button:hover {
+    cursor: pointer;
+    color: var(--sol-violet);
+    background-color: var(--sol-base2);
+    border: 1px solid var(--sol-violet);
+}
+
+.button * {
+    display: inline;
+}

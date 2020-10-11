@@ -1,0 +1,21 @@
+/* some text styles */
+.rend-smaller {
+    font-size: smaller;
+}
+
+.rend-nowrap {
+    white-space: nowrap;
+}
+
+.rend-indent {
+    text-indent: 2em;
+}
+
+.rend-hanging {
+    text-indent: -2em;
+    padding-left: 2em;
+}
+
+.rend-eqlines {
+    line-height: 1.4;
+}

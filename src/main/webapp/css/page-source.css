@@ -1,0 +1,7 @@
+@import url("global.css");
+
+@import url("tei.css.d");
+
+table, td, th {
+    border: 1px dotted var(--sol-base1);
+}

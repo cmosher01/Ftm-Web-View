@@ -76,6 +76,9 @@ public record EventSource(
                 } else {
                     node = buildStandardCitationAsTei();
                 }
+                if (safe(node.getTextContent()).isBlank()) {
+                    t(node, "[this note is blank]");
+                }
                 parent.appendChild(parent.getOwnerDocument().importNode(node, true));
             }
         }

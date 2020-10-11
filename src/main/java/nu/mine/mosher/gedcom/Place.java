@@ -75,7 +75,7 @@ public class Place {
 
     public void appendTo(final Element parent) {
         if (this.ditto) {
-            parent.setTextContent("\u00A0\u201D");
+            parent.setTextContent("\u00A0\u3003");
         } else {
             final Element name = e(parent, "span");
             name.setTextContent(this.abbreviatedOverride.isBlank() ? this.description : this.abbreviatedOverride);
