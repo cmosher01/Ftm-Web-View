@@ -35,3 +35,11 @@
 .rend-hi-3 {
     color: var(--sol-yellow);
 }
+
+.rend-hi-auth {
+    color: var(--sol-green);
+}
+
+.rend-hi-unauth {
+    color: var(--sol-red);
+}

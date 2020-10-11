@@ -470,14 +470,13 @@ public class FtmViewerServlet extends HttpServlet {
         Styles.add(e, "g-signin2");
         Styles.add(e, Styles.Links.button);
 
-        if (role.loggedIn()) {
-            e = e(nav, "span");
-            e.setTextContent(" ");
+        e = e(nav, "span");
+        e.setTextContent(" ");
 
             // signed-in user's email
-            e = e(nav, "small");
-            e.setTextContent(role.email());
-        }
+        e = e(nav, "small");
+        e.setTextContent(role.loggedIn() ? role.email() : "guest");
+        Styles.add(e, role.authorized() ? Styles.Render.hiauth : Styles.Render.hiunauth);
 
         e = e(nav, "span");
         e.setTextContent(" ");
@@ -486,6 +485,7 @@ public class FtmViewerServlet extends HttpServlet {
         e = e(nav, "a");
         Styles.add(e, Styles.Links.button);
         e.setTextContent("Sign\u00A0out");
+        e.setAttribute("id", "signout");
     }
 
     private void fragNav(Auth.RbacRole role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException {
@@ -497,8 +497,6 @@ public class FtmViewerServlet extends HttpServlet {
         Styles.add(divL, Styles.Layout.c2Left);
 
         Element sp;
-//        sp = e(divL, "span");
-//        sp.setTextContent(" ");
         final Element a = e(divL, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
@@ -509,8 +507,6 @@ public class FtmViewerServlet extends HttpServlet {
             final Element a2 = e(divL, "a");
             a2.setAttribute("href", urlQueryTree(indexedDatabase));
             a2.setTextContent("{" + indexedDatabase.file().getName() + "}");
-//            sp = e(divL, "span");
-//            sp.setTextContent(" ");
         }
 
         LOG.debug("source database: {}", indexedDatabase);
@@ -535,8 +531,6 @@ public class FtmViewerServlet extends HttpServlet {
                         final Element a3 = e(divL, "a");
                         a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
                         a3.setTextContent("{" + db.file().getName() + "}");
-//                        sp = e(divL, "span");
-//                        sp.setTextContent(" ");
                     }
                 }
             }

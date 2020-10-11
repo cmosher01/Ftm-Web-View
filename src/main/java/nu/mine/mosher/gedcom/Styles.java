@@ -17,7 +17,9 @@ public final class Styles {
         hi0("rend-hi-0"),
         hi1("rend-hi-1"),
         hi2("rend-hi-2"),
-        hi3("rend-hi-3");
+        hi3("rend-hi-3"),
+        hiauth("rend-hi-auth"),
+        hiunauth("rend-hi-unauth");
 
         private final String cssClass;
 
