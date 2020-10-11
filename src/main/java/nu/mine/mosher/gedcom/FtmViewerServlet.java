@@ -828,7 +828,11 @@ public class FtmViewerServlet extends HttpServlet {
                 Styles.add(a, Styles.Links.hilite);
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(parent.name());
-                // TODO "has ancestors" indication
+
+                if (0 < parent.grandparents()) {
+                    final Element gc = e(td, "sup");
+                    gc.setTextContent("\u2442".repeat(parent.grandparents()));
+                }
             }
         }
     }
@@ -923,6 +927,8 @@ public class FtmViewerServlet extends HttpServlet {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
             children = map.select(new ChildrenMap.ParentRel(idRelationship, indexedPerson.pkid()));
         }
+        LOG.debug("Loaded children: {}", children);
+
         final Element ch = e(section, "span");
         ch.setTextContent("children: ");
         final Element table = e(section, "table");
@@ -950,8 +956,13 @@ public class FtmViewerServlet extends HttpServlet {
                 Styles.add(a, Styles.Links.hilite);
                 a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
                 a.setTextContent(child.name());
+
+                if (0 < child.grandchildren()) {
+                    final Element gc = e(td, "sup");
+                    gc.setTextContent("\u2443".repeat((child.grandchildren() + 2) / 3));
+                }
+
                 // TODO child birth dates
-                // TODO "has descendants" indication
             }
         }
     }

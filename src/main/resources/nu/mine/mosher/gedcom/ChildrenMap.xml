@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.ChildrenMap">
-    <resultMap id="result" type="nu.mine.mosher.gedcom.PersonChild" autoMapping="false">
-        <constructor>
-            <idArg column="id" javaType="java.util.UUID"/>
-            <arg column="name" javaType="String"/>
-            <arg column="nature" javaType="nu.mine.mosher.gedcom.FtmNature"/>
-        </constructor>
-    </resultMap>
-
-    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.ChildrenMap$ParentRel" resultOrdered="true">
+    <select id="select" resultType="nu.mine.mosher.gedcom.PersonChild" parameterType="nu.mine.mosher.gedcom.ChildrenMap$ParentRel">
         WITH ParamParentRel AS (
             SELECT #{pkidParentPerson} AS ParentPersonID, #{pkidRelationship} AS RelationshipID
         )
@@ -18,7 +10,16 @@
             Person.PersonGUID AS id,
             Person.FullNameReversed AS name,
             ChildRelationship.Nature1 AS nature,
-            Person.BirthDate
+            Person.BirthDate AS dateBirth,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    Relationship R INNER JOIN
+                    ChildRelationship C ON (C.RelationshipID = R.ID)
+                WHERE
+                    R.Person1ID = Person.ID OR R.Person2ID = Person.ID
+            ) AS grandchildren
         FROM
             ParamParentRel LEFT OUTER JOIN
             Relationship ON (Relationship.ID = ParamParentRel.RelationshipID AND Relationship.Person1ID = ParamParentRel.ParentPersonID) LEFT OUTER JOIN
@@ -33,7 +34,16 @@
             Person.PersonGUID AS id,
             Person.FullNameReversed AS name,
             ChildRelationship.Nature2 AS nature,
-            Person.BirthDate
+            Person.BirthDate AS dateBirth,
+            (
+                SELECT
+                    COUNT(*)
+                FROM
+                    Relationship R INNER JOIN
+                    ChildRelationship C ON (C.RelationshipID = R.ID)
+                WHERE
+                    R.Person1ID = Person.ID OR R.Person2ID = Person.ID
+            ) AS grandchildren
         FROM
             ParamParentRel LEFT OUTER JOIN
             Relationship ON (Relationship.ID = ParamParentRel.RelationshipID AND Relationship.Person2ID = ParamParentRel.ParentPersonID) LEFT OUTER JOIN
