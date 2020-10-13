@@ -43,7 +43,7 @@ public record GeoCoords(
 
     private static Optional<URL> buildUrl(Optional<Double> oddLat, Optional<Double> oddLon) {
         /*
-         *      https://www.google.com/maps/@?api=1&map_action=map&center=-33.712206,150.311941
+         *      https://www.google.com/maps/search/?api=1&query=-33.712206,150.311941
          */
 
         try {
@@ -52,10 +52,9 @@ public record GeoCoords(
                 new URIBuilder().
                 setScheme("https").
                 setHost("www.google.com").
-                setPathSegments("maps", "@").
+                setPathSegments("maps", "search", "").
                 setParameter("api", "1").
-                setParameter("map_action", "map").
-                setParameter("center", pair).
+                setParameter("query", pair).
                 build().
                 toURL());
         } catch (final Throwable e) {
