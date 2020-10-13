@@ -151,8 +151,7 @@ public class Day implements Comparable<Day> {
             final StringBuilder s = new StringBuilder(16);
             if (this.noYear) {
                 s.append("\u00d7".repeat(4)); // math cross product/multiply symbol: "x"
-            } else
-            {
+            } else {
                 int year = this.ld.getYear();
                 if (year < 0)
                 {
@@ -164,16 +163,14 @@ public class Day implements Comparable<Day> {
             s.append('\u2012'); // figure dash
             if (this.noMonth) {
                 s.append("\u00d7".repeat(2)); // math cross product/multiply symbol: "x"
-            } else
-            {
+            } else {
                 int month = this.ld.getMonthValue();
                 s.append(String.format("%02d", month));
             }
             s.append('\u2012'); // figure dash
             if (this.noDay) {
                 s.append("\u00d7".repeat(2)); // math cross product/multiply symbol: "x"
-            } else
-            {
+            } else {
                 int day = this.ld.getDayOfMonth();
                 s.append(String.format("%02d", day));
             }

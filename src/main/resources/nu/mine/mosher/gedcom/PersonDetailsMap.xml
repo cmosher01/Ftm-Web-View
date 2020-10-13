@@ -1,20 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.PersonDetailsMap">
-    <resultMap id="result" type="nu.mine.mosher.gedcom.Person" autoMapping="false">
-        <constructor>
-            <idArg column="id" javaType="java.util.UUID"/>
-            <arg column="nameWithSlashes" javaType="String"/>
-            <arg column="pkid" javaType="_int"/>
-        </constructor>
-    </resultMap>
-
     <!-- TODO how to get/display media attached directly to a Person? -->
-    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson" resultOrdered="true">
+    <!-- TODO (SELECT AmtID FROM Sync_Person S WHERE S.FtmID = Person.ID) AS ancestryPersonID -->
+<!--    SS.TreeID AS ancestryTreeID-->
+<!--    LEFT OUTER JOIN Sync_State SS-->
+
+    <select id="select" resultType="nu.mine.mosher.gedcom.Person" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
         SELECT
             Person.PersonGUID AS id,
             NameFact.Text AS nameWithSlashes,
-            Person.ID AS pkid
+            Person.ID AS pkid,
+            Person.UpdateDate AS lastmod
         FROM
             Person LEFT OUTER JOIN
             Fact AS NameFact ON (NameFact.ID = Person.NameFactID)

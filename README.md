@@ -168,17 +168,13 @@ There are 9 flag bits:
 
 Allowed date range: 1 JAN 4713 BC through 31 DEC 6000 AD, inclusive
 
+    select strftime('%Y-%m-%d',date/512) from fact;
 
-select strftime('%Y-%m-%d',date/512) from fact;
+other (non-genealogical) dates are normal unix epoch dates:
 
+    select datetime(updatedate,'unixepoch') from person;
 
-TODO: research:
-* dates: "between", modifiers, "abt", other string, other calendars?
-* notes: on media?, on other?
-* multiple names
-* tasks
-* source templates
-
+TODO: Are they stored in UTC? How does it handle Daylight Saving Time?
 
 lat/long: r*(180/pi), +:N/E, -:S/W
 

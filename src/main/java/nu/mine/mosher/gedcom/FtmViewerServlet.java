@@ -7,6 +7,7 @@ import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
 import org.apache.tika.exception.TikaException;
 import org.jdom2.JDOMException;
+import org.joda.time.Seconds;
 import org.slf4j.*;
 import org.sqlite.SQLiteConfig;
 import org.w3c.dom.*;
@@ -20,6 +21,7 @@ import java.nio.file.Path;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -375,7 +377,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(body);
+        fragFooter(Optional.empty(), body);
 
         return dom;
     }
@@ -441,7 +443,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(body);
+        fragFooter(Optional.empty(), body);
 
         return dom;
     }
@@ -587,7 +589,7 @@ public class FtmViewerServlet extends HttpServlet {
         e(body, "hr");
         fragFootnotes(indexedDatabase, body, footnotes);
         e(body, "hr");
-        fragFooter(body);
+        fragFooter(Optional.of(person), body);
 
 
 
@@ -773,12 +775,26 @@ public class FtmViewerServlet extends HttpServlet {
         });
     }
 
-    private static void fragFooter(final Element body) {
+    private static void fragFooter(final Optional<Person> person, final Element body) {
         final Element footer = e(body, "footer");
-        final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
-        final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-        final Element time = e(footer, "small");
-        time.setTextContent("Page generated "+sNow+" .");
+
+        final Element ul = e(footer, "ul");
+
+        if (person.isPresent() && Objects.nonNull(person.get().lastmod())) {
+            final Element li = e(ul, "li");
+            final Element small = e(li, "small");
+            final Element tsLastMod = e(small, "span");
+            tsLastMod.setTextContent(person.get().lastmod().toString() + " : person last modified");
+        }
+
+        {
+            final Element li = e(ul, "li");
+            final Element small = e(li, "small");
+            final Element tsPage = e(small, "span");
+            final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+            final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
+            tsPage.setTextContent(sNow + " : page generated");
+        }
     }
 
     private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
@@ -787,6 +803,7 @@ public class FtmViewerServlet extends HttpServlet {
             final PersonDetailsMap map = session.getMapper(PersonDetailsMap.class);
             person = map.select(indexedPerson);
         }
+        LOG.debug("Loaded Person: {}", person);
         return person;
     }
 
@@ -1018,7 +1035,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(body);
+        fragFooter(Optional.empty(), body);
 
         return dom;
     }
