@@ -3,10 +3,9 @@ package nu.mine.mosher.gedcom;
 
 import org.slf4j.*;
 
-import java.util.Objects;
+import java.util.*;
 
 
-// TODO links for "FamilySearch ID", "WikiTree ID", etc. For others, see: https://en.wikipedia.org/wiki/List_of_genealogy_databases
 // TODO style Name
 public record Event(int pkid, Day date, Place place, FtmFactTypeTag tag, String type, String description) implements Comparable<Event> {
     private static final Logger LOG =  LoggerFactory.getLogger(Event.class);
@@ -44,5 +43,19 @@ public record Event(int pkid, Day date, Place place, FtmFactTypeTag tag, String 
 
     public boolean isSecondary() {
         return Objects.nonNull(tag()) && FtmFactTypeTag.setSecondary.contains(tag());
+    }
+
+    public Optional<WorldTreeID> getIfID() {
+        if (type().length() < 3) {
+            return Optional.empty();
+        }
+        if (!type().substring(type().length()-3).equalsIgnoreCase(" ID")) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(WorldTreeID.valueOf(type().substring(0, type().length() - 3).toUpperCase()));
+        } catch (final Throwable e) {
+            return Optional.empty();
+        }
     }
 }

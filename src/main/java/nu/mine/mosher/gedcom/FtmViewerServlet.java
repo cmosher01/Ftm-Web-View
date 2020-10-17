@@ -35,7 +35,7 @@ TODO tasks
 TODO tags
 TODO "cite this source" on person page, source page
 TODO submitter/copyright
-TODO show last mod date of database, person
+TODO synch info (note: only in databases that have been sync'd)
 */
 
 public class FtmViewerServlet extends HttpServlet {
@@ -685,7 +685,14 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element spanSep = e(tdDescription, "span");
                 spanSep.setTextContent(": ");
                 final Element spanDesc = e(tdDescription, "span");
-                spanDesc.setTextContent(event.description());
+                final Optional<WorldTreeID> optionalWorldTreeID = event.getIfID();
+                if (optionalWorldTreeID.isPresent() && optionalWorldTreeID.get().urlFor(event.description()).isPresent()) {
+                    final Element a = e(spanDesc, "a");
+                    a.setAttribute("href", optionalWorldTreeID.get().urlFor(event.description()).get().toExternalForm());
+                    a.setTextContent(event.description());
+                } else {
+                    spanDesc.setTextContent(event.description());
+                }
             }
 
             final Optional<EventWithSources> sources = Optional.ofNullable(mapEventSources.get(event.pkid()));
