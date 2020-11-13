@@ -7,10 +7,13 @@ import java.util.regex.*;
 
 /**
  * Represents IDs in some de-facto standard global family trees, such as WikiTree.com , or FamilySearch.org .
+ *
+ * TODO allow these IDs to be specified in the URL, and search for the corresponding record
  */
 public enum WorldTreeID {
     ANCESTRY(WorldTreeID::pAncestry),
     FAMILYSEARCH(WorldTreeID::pFamilySearch),
+    // TODO Ancestral File  https://www.familysearch.org/ark:/61903/2:1:MWB4-W1C
     WIKITREE(WorldTreeID::pWikiTree),
     GENI(WorldTreeID::pGeni),
     GENEANET(WorldTreeID::pGeneanet),

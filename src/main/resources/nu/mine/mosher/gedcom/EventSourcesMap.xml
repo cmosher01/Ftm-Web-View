@@ -21,6 +21,7 @@
             <result property="source" column="source"/>
             <result property="apidSource" column="apidSource"/>
             <result property="weblink" column="weblink"/>
+            <result property="note" column="note"/>
             <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="true" notNullColumn="pkidMedia">
                 <id property="pkidMedia" column="pkidMedia"/>
             </collection>
@@ -49,7 +50,8 @@
             MasterSource.PID AS apidSource,
             MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file,
-            (SELECT Url FROM WebLink WHERE WebLink.LinkID = Source.ID AND WebLink.LinkTableID = 16 LIMIT 1) AS weblink
+            (SELECT Url FROM WebLink WHERE WebLink.LinkTableID = 16 AND WebLink.LinkID = Source.ID LIMIT 1) AS weblink,
+            (SELECT NoteText FROM Note WHERE Note.LinkTableID = 16 AND Note.LinkID = Source.ID LIMIT 1) AS note
         FROM
             Fact LEFT OUTER JOIN
             SourceLink ON (SourceLink.LinkTableID = 2 AND SourceLink.LinkID = Fact.ID) LEFT OUTER JOIN
@@ -83,7 +85,8 @@
             MasterSource.PID AS apidSource,
             MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file,
-            (SELECT Url FROM WebLink WHERE WebLink.LinkID = Source.ID AND WebLink.LinkTableID = 16 LIMIT 1) AS weblink
+            (SELECT Url FROM WebLink WHERE WebLink.LinkTableID = 16 AND WebLink.LinkID = Source.ID LIMIT 1) AS weblink,
+            (SELECT NoteText FROM Note WHERE Note.LinkTableID = 16 AND Note.LinkID = Source.ID LIMIT 1) AS note
         FROM
             Fact LEFT OUTER JOIN
             SourceLink ON (SourceLink.LinkTableID = 2 AND SourceLink.LinkID = Fact.ID) LEFT OUTER JOIN
@@ -117,7 +120,8 @@
             null AS apidSource,
             MediaFile.ID AS media_pkidMedia,
             MediaFile.FileName AS media_file,
-            null AS weblink
+            null AS weblink,
+            null AS note
         FROM
             Fact LEFT OUTER JOIN
             MediaLink ON MediaLink.LinkTableID = 2 AND MediaLink.LinkID = Fact.ID LEFT OUTER JOIN
@@ -149,7 +153,8 @@
             null AS apidSource,
             null AS media_pkidMedia,
             null AS media_file,
-            null AS weblink
+            null AS weblink,
+            null AS note
         FROM
             Fact INNER JOIN
             Note ON Note.LinkTableID = 2 AND Note.LinkID = Fact.ID

@@ -41,17 +41,18 @@ public record EventSource(
 
     List<MediaFile> media,
 
-    String weblink
+    String weblink,
+    String note
 ) {
     private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
     private static final Random rand = new Random();
 
     public EventSource() {
-        this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null);
+        this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null,null);
     }
 
     public EventSource(final String note) {
-        this(0,null,null,rand.nextInt(),null,null,note,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null);
+        this(0,null,null,rand.nextInt(),null,null,note,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null,null);
     }
 
     @Override
@@ -68,8 +69,8 @@ public record EventSource(
     }
 
     public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException {
-        if (!teiStyleIfPossible(safe(footnote), parent)) {
-            if (!teiStyleIfPossible(safe(page), parent)) {
+        if (!teiStyleIfPossible(safe(footnote()), parent)) {
+            if (!teiStyleIfPossible(safe(page()), parent)) {
                 final Node node;
                 if (!safe(footnote()).isBlank()) {
                     node = HtmlUtils.tika(footnote());
@@ -79,6 +80,16 @@ public record EventSource(
                 if (safe(node.getTextContent()).isBlank()) {
                     t(node, "[this note is blank]");
                 }
+                parent.appendChild(parent.getOwnerDocument().importNode(node, true));
+            }
+        }
+
+        if (!safe(note()).isBlank()) {
+            final Node node = HtmlUtils.tika(note());
+            if (safe(node.getTextContent()).isBlank()) {
+                t(node, "[this note is blank]");
+            } else {
+                t(parent, " ");
                 parent.appendChild(parent.getOwnerDocument().importNode(node, true));
             }
         }
@@ -167,10 +178,10 @@ public record EventSource(
             a.setTextContent(new String(Character.toChars(0x1F5BB)));
         });
 
-        if (!safe(comment).isBlank()) {
+        if (!safe(comment()).isBlank()) {
             t(parent, " ");
             final Element a = e(parent, "a");
-            a.setAttribute("href", urlQueryTreeSource(indexedDatabase, pkidCitation));
+            a.setAttribute("href", urlQueryTreeSource(indexedDatabase, pkidCitation()));
             a.setTextContent(new String(Character.toChars(0x1F5D0)));
         }
 
