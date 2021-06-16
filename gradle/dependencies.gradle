@@ -1,10 +1,8 @@
 apply plugin: WarPlugin
 
 repositories {
-    jcenter()
     mavenCentral()
     google()
-    mavenLocal()
 }
 
 dependencies {
@@ -21,7 +19,7 @@ dependencies {
     runtimeOnly group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.release'
     runtimeOnly group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.release'
 
-    implementation group: "org.apache.tika", name: "tika-parsers", version: 'latest.release'
+    implementation group: "org.apache.tika", name: "tika-parsers", version: '1.+'
     implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
     implementation group: 'org.nibor.autolink', name: 'autolink', version: 'latest.release'
 

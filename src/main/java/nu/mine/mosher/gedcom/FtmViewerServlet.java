@@ -432,7 +432,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Element ul = e(section, "ul");
         Styles.add(ul, Styles.Layout.cn);
         for (final IndexedPerson indexedPerson : list) {
-            if (role.authorized() || !indexedPerson.isRecent()) {
+            if (role.authorized() /*|| !indexedPerson.isRecent()*/) {
                 final Element li = e(ul, "li");
                 Styles.add(li, Styles.Render.hanging);
                 final Element ap = e(li, "a");
@@ -660,7 +660,7 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private void fragEvent(final Auth.RbacRole role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) {
-        if (role.authorized() || !event.isRecent()) {
+        if (role.authorized()/* || !event.isRecent()*/) {
             final Element tr = e(tbody, "tr");
 
             final Element tdDate = e(tr, "td");
@@ -894,7 +894,7 @@ public class FtmViewerServlet extends HttpServlet {
         } else {
             LOG.debug("partnerships selected: {}", partnerships);
             for (final PersonPartnership partnership : partnerships) {
-                if (role.authorized() || !partnership.isRecent()) {
+                if (role.authorized() /*|| !partnership.isRecent()*/) {
                     UUID uuidLink = partnership.idPerson();
                     final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
                     if (optRefn.isPresent()) {

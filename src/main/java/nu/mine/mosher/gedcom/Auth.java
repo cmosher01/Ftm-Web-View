@@ -2,7 +2,7 @@ package nu.mine.mosher.gedcom;
 
 import com.google.api.client.googleapis.auth.oauth2.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import jakarta.servlet.http.*;
 import org.slf4j.*;
 
@@ -59,7 +59,7 @@ public class Auth {
     }
 
     private static GoogleIdTokenVerifier tokenVerifier() {
-        return new GoogleIdTokenVerifier.Builder(TRANSPORT, JacksonFactory.getDefaultInstance()).setAudience(Collections.singleton(googleClientID())).build();
+        return new GoogleIdTokenVerifier.Builder(TRANSPORT, GsonFactory.getDefaultInstance()).setAudience(Collections.singleton(googleClientID())).build();
     }
 
     private static boolean emailIsAuthorized(final String email) {
