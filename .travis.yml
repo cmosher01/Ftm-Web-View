@@ -2,10 +2,9 @@
 sudo: required
 services:
   - docker
-before_script:
-  - 'whoami'
-  - 'pwd'
-  - 'ls -al'
-  - 'docker version'
 script:
   - 'docker build -t ftm-web-view .'
+after_success:
+  - 'docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN'
+  - 'docker tag ftm-web-view $DOCKER_USERNAME/ftm-web-view:latest'
+  - 'docker push $DOCKER_USERNAME/ftm-web-view:latest'

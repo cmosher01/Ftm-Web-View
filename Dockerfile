@@ -14,7 +14,7 @@ COPY settings.gradle ./
 COPY build.gradle ./
 COPY src/ ./src/
 
-RUN ./gradlew build
+RUN ./gradlew -i build
 RUN ./gradlew dependencies --configuration=compileClasspath
 
 
