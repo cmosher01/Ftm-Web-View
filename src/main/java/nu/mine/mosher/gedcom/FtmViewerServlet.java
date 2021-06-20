@@ -7,7 +7,6 @@ import org.apache.hc.core5.net.URLEncodedUtils;
 import org.apache.ibatis.session.*;
 import org.apache.tika.exception.TikaException;
 import org.jdom2.JDOMException;
-import org.joda.time.Seconds;
 import org.slf4j.*;
 import org.sqlite.SQLiteConfig;
 import org.w3c.dom.*;
@@ -41,7 +40,7 @@ TODO synch info (note: only in databases that have been sync'd)
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
 
-    private static final boolean PUBLIC_ACCESS = true;
+    private static final boolean PUBLIC_ACCESS = false;
 
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
