@@ -47,6 +47,14 @@ public record EventSource(
     private static final Logger LOG = LoggerFactory.getLogger(EventSource.class);
     private static final Random rand = new Random();
 
+    public EventSource(int pkidSourceLink, Integer stars,String just,Integer pkidCitation,String page,String comment,String footnote,String apid,String author,String title,String placePub,String pub,String datePub,String callno,String source,String apidSource,String weblink,String note) {
+        this(pkidSourceLink,stars,just,pkidCitation,page,comment,footnote,apid,author,title,placePub,pub,datePub,callno,source,apidSource,new ArrayList<>(),weblink,note);
+    }
+
+    public EventSource(Integer pkidCitation,String page,String comment,String footnote,String apid,String author,String title,String placePub,String pub,String datePub,String callno,String source,String apidSource) {
+        this(0,null,null,pkidCitation,page,comment,footnote,apid,author,title,placePub,pub,datePub,callno,source,apidSource,new ArrayList<>(),null,null);
+    }
+
     public EventSource() {
         this(0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,new ArrayList<>(),null,null);
     }

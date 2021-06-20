@@ -12,7 +12,7 @@
         </constructor>
     </resultMap>
 
-    <select id="select" resultMap="result" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
+    <select id="select" resultMap="result">
         WITH Param AS (
             SELECT ID as PersonID FROM Person WHERE PersonGUID = #{id}
         )

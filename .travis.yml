@@ -1,0 +1,11 @@
+---
+sudo: required
+services:
+  - docker
+before_script:
+  - 'whoami'
+  - 'pwd'
+  - 'ls -al'
+  - 'docker version'
+script:
+  - 'docker build -t ftm-web-view .'

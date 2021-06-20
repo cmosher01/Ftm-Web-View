@@ -6,7 +6,17 @@
 <!--    SS.TreeID AS ancestryTreeID-->
 <!--    LEFT OUTER JOIN Sync_State SS-->
 
-    <select id="select" resultType="nu.mine.mosher.gedcom.Person" parameterType="nu.mine.mosher.gedcom.IndexedPerson">
+    <resultMap id="result" type="nu.mine.mosher.gedcom.Person" autoMapping="false">
+        <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
+        <constructor>
+          <arg column="id" name="id"/>
+          <arg column="nameWithSlashes" name="nameWithSlashes"/>
+          <arg column="pkid" name="pkid"/>
+          <arg column="lastmod" name="lastmod"/>
+        </constructor>
+    </resultMap>
+
+    <select id="select" resultMap="result">
         SELECT
             Person.PersonGUID AS id,
             NameFact.Text AS nameWithSlashes,

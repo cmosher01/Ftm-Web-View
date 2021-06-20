@@ -1,4 +1,4 @@
-FROM openjdk:14 AS build
+FROM openjdk:16 AS build
 
 MAINTAINER Christopher A. Mosher <cmosher01@gmail.com>
 
@@ -19,7 +19,7 @@ RUN ./gradlew dependencies --configuration=compileClasspath
 
 
 
-FROM tomcat:10-jdk14 AS run
+FROM tomcat:10-jdk16 AS run
 
 USER root
 ENV HOME /root

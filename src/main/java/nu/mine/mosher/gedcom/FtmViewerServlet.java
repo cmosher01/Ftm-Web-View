@@ -41,6 +41,8 @@ TODO synch info (note: only in databases that have been sync'd)
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
 
+    private static final boolean PUBLIC_ACCESS = true;
+
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
         LOG.trace("REQUEST HANDLING: BEGIN {}", "=".repeat(50));
@@ -262,13 +264,28 @@ public class FtmViewerServlet extends HttpServlet {
     private Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
         final Optional<IndexedPerson> optFiltered;
 
+//        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+//            final PersonMap map = session.getMapper(PersonMap.class);
+//            optFiltered = Optional.ofNullable(map.select(indexedPerson));
+//            if (optFiltered.isPresent()) {
+//                LOG.debug("Found matching Person: {}", optFiltered.get());
+//            } else {
+//                LOG.info("Did not find Person matching {}", indexedPerson);
+//            }
+//        }
+
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-            final PersonMap map = session.getMapper(PersonMap.class);
-            optFiltered = Optional.ofNullable(map.select(indexedPerson));
-            if (optFiltered.isPresent()) {
-                LOG.debug("Found matching Person: {}", optFiltered.get());
+            final PersonQuickMap map = session.getMapper(PersonQuickMap.class);
+            final var idPerson = map.select(indexedPerson.preferRefn().toString());
+            if (idPerson > 0) {
+                LOG.debug("Found matching Person.ID: {}", idPerson);
+                optFiltered = Optional.ofNullable(session.getMapper(PersonMap.class).select(idPerson));
+                if (optFiltered.isEmpty()) {
+                    LOG.warn("Could not re-locate Person.ID: {}", idPerson);
+                }
             } else {
-                LOG.info("Did not find Person matching {}", indexedPerson);
+                LOG.info("Did not find any Person associated with UUID: {}", indexedPerson.preferRefn());
+                optFiltered = Optional.empty();
             }
         }
 
@@ -432,7 +449,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Element ul = e(section, "ul");
         Styles.add(ul, Styles.Layout.cn);
         for (final IndexedPerson indexedPerson : list) {
-            if (role.authorized() /*|| !indexedPerson.isRecent()*/) {
+            if (role.authorized() || (!indexedPerson.isRecent() && PUBLIC_ACCESS)) {
                 final Element li = e(ul, "li");
                 Styles.add(li, Styles.Render.hanging);
                 final Element ap = e(li, "a");
@@ -660,7 +677,7 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private void fragEvent(final Auth.RbacRole role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) {
-        if (role.authorized()/* || !event.isRecent()*/) {
+        if (role.authorized() || (!event.isRecent() && PUBLIC_ACCESS)) {
             final Element tr = e(tbody, "tr");
 
             final Element tdDate = e(tr, "td");
@@ -894,7 +911,7 @@ public class FtmViewerServlet extends HttpServlet {
         } else {
             LOG.debug("partnerships selected: {}", partnerships);
             for (final PersonPartnership partnership : partnerships) {
-                if (role.authorized() /*|| !partnership.isRecent()*/) {
+                if (role.authorized() || (!partnership.isRecent() && PUBLIC_ACCESS)) {
                     UUID uuidLink = partnership.idPerson();
                     final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
                     if (optRefn.isPresent()) {

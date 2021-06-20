@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.EventsMap">
-    <select id="select" resultType="nu.mine.mosher.gedcom.Event" parameterType="nu.mine.mosher.gedcom.FtmLink" resultOrdered="true">
+  <resultMap id="result" type="nu.mine.mosher.gedcom.Event" autoMapping="false">
+    <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
+    <constructor>
+      <arg column="pkid" name="pkid"/>
+      <arg column="date" name="date"/>
+      <arg column="place" name="place"/>
+      <arg column="tag" name="tag"/>
+      <arg column="type" name="type"/>
+      <arg column="description" name="description"/>
+    </constructor>
+  </resultMap>
+    <select id="select" resultMap="result" resultOrdered="true">
         SELECT
             Fact.ID AS pkid,
             Fact.Date AS date,

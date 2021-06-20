@@ -3,24 +3,9 @@ apply plugin: JavaLibraryPlugin
 group = 'nu.mine.mosher.gedcom'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_14
+    sourceCompatibility = JavaVersion.VERSION_16
 }
 
 compileJava {
     options.compilerArgs << '-parameters'
-    options.compilerArgs << "--enable-preview"
-}
-
-compileTestJava {
-    options.compilerArgs << '-parameters'
-    options.compilerArgs << "--enable-preview"
-}
-
-tasks.withType(JavaExec) {
-    jvmArgs += "--enable-preview"
-}
-
-test {
-    useJUnitPlatform()
-    jvmArgs += "--enable-preview"
 }

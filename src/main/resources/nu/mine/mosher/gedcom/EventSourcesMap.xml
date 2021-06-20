@@ -1,35 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.gedcom.EventSourcesMap">
-    <resultMap id="mapEventWithSources" type="nu.mine.mosher.gedcom.EventWithSources" autoMapping="true">
-        <id column="pkidFact" property="pkidFact"/>
-        <collection property="sources" ofType="nu.mine.mosher.gedcom.EventSource" autoMapping="false" notNullColumn="pkidCitation">
-            <id property="pkidSourceLink" column="pkidSourceLink"/>
-            <result property="stars" column="stars"/>
-            <result property="just" column="just"/>
-            <result property="pkidCitation" column="pkidCitation"/>
-            <result property="page" column="page"/>
-            <result property="comment" column="comment"/>
-            <result property="footnote" column="footnote"/>
-            <result property="apid" column="apid"/>
-            <result property="author" column="author"/>
-            <result property="title" column="title"/>
-            <result property="placePub" column="placePub"/>
-            <result property="pub" column="pub"/>
-            <result property="datePub" column="datePub"/>
-            <result property="callno" column="callno"/>
-            <result property="source" column="source"/>
-            <result property="apidSource" column="apidSource"/>
-            <result property="weblink" column="weblink"/>
-            <result property="note" column="note"/>
-            <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="true" notNullColumn="pkidMedia">
-                <id property="pkidMedia" column="pkidMedia"/>
-            </collection>
+    <resultMap id="result" type="nu.mine.mosher.gedcom.EventWithSources" autoMapping="false">
+      <id column="pkidFact" property="pkidFact"/>
+      <collection property="sources" ofType="nu.mine.mosher.gedcom.EventSource" autoMapping="false" notNullColumn="pkidCitation">
+        <constructor>
+          <idArg column="pkidSourceLink" name="pkidSourceLink"/>
+          <arg column="stars" name="stars"/>
+          <arg column="just" name="just"/>
+          <arg column="pkidCitation" name="pkidCitation"/>
+          <arg column="page" name="page"/>
+          <arg column="comment" name="comment"/>
+          <arg column="footnote" name="footnote"/>
+          <arg column="apid" name="apid"/>
+          <arg column="author" name="author"/>
+          <arg column="title" name="title"/>
+          <arg column="placePub" name="placePub"/>
+          <arg column="pub" name="pub"/>
+          <arg column="datePub" name="datePub"/>
+          <arg column="callno" name="callno"/>
+          <arg column="source" name="source"/>
+          <arg column="apidSource" name="apidSource"/>
+          <arg column="weblink" name="weblink"/>
+          <arg column="note" name="note"/>
+        </constructor>
+        <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.gedcom.MediaFile" autoMapping="false" notNullColumn="pkidMedia">
+          <constructor>
+            <idArg column="pkidMedia" name="pkidMedia"/>
+            <arg column="file" name="file"/>
+          </constructor>
         </collection>
+      </collection>
     </resultMap>
     <!-- TODO Source +-0< Note -->
     <!-- TODO MediaFile +-0< Note -->
-    <select id="select" resultMap="mapEventWithSources" parameterType="nu.mine.mosher.gedcom.FtmLink">
+    <select id="select" resultMap="result">
         SELECT
             Fact.ID AS pkidFact,
             SourceLink.ID AS pkidSourceLink,
