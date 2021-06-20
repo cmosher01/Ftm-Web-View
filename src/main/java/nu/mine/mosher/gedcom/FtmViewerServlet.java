@@ -243,12 +243,12 @@ public class FtmViewerServlet extends HttpServlet {
             StandardCharsets.UTF_8);
     }
 
-//    private static String urlQueryPerson(UUID uuidPerson) {
-//        return "?"+URLEncodedUtils.format(
-//            List.of(
-//                new BasicNameValuePair("person_uuid", uuidPerson.toString())),
-//            StandardCharsets.UTF_8);
-//    }
+    /*
+    TODO change the find/find-any logic to work more like:
+    1. given a uuid and optionally a preferred tree,
+    2. if pref. tree given, then search for uuid in preferred tree, if found return
+    3. otherwise search all other trees
+    */
 
     private Optional<IndexedDatabase> findPersonInAnyTree(final IndexedPerson indexedPerson) throws SQLException {
         final List<IndexedDatabase> dbs = loadDatabaseIndex();
@@ -264,20 +264,10 @@ public class FtmViewerServlet extends HttpServlet {
     private Optional<IndexedPerson> findPersonInTree(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
         final Optional<IndexedPerson> optFiltered;
 
-//        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-//            final PersonMap map = session.getMapper(PersonMap.class);
-//            optFiltered = Optional.ofNullable(map.select(indexedPerson));
-//            if (optFiltered.isPresent()) {
-//                LOG.debug("Found matching Person: {}", optFiltered.get());
-//            } else {
-//                LOG.info("Did not find Person matching {}", indexedPerson);
-//            }
-//        }
-
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonQuickMap map = session.getMapper(PersonQuickMap.class);
             final var idPerson = map.select(indexedPerson.preferRefn().toString());
-            if (idPerson > 0) {
+            if (Objects.nonNull(idPerson) && idPerson > 0L) {
                 LOG.debug("Found matching Person.ID: {}", idPerson);
                 optFiltered = Optional.ofNullable(session.getMapper(PersonMap.class).select(idPerson));
                 if (optFiltered.isEmpty()) {
@@ -291,20 +281,6 @@ public class FtmViewerServlet extends HttpServlet {
 
         return optFiltered;
     }
-
-//    private Optional<UUID> findPersonInTreeByRefn(final IndexedDatabase indexedDatabase, final Refn uuidRefn) throws SQLException {
-//        final Optional<UUID> optPersonGuid;
-//        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-//            final RefnMap map = session.getMapper(RefnMap.class);
-//            optPersonGuid = Optional.ofNullable(map.select(uuidRefn));
-//            if (optPersonGuid.isPresent()) {
-//                LOG.debug("located matching Person for REFN {}: PersonGUID={}", uuidRefn, optPersonGuid.get());
-//            } else {
-//                LOG.info("Did not find REFN {}", uuidRefn);
-//            }
-//        }
-//        return optPersonGuid;
-//    }
 
     private static Optional<IndexedDatabase> findTree(final String nameTree) {
         for (final IndexedDatabase idb : loadDatabaseIndex()) {
