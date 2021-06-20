@@ -794,6 +794,13 @@ public class FtmViewerServlet extends HttpServlet {
             final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
             tsPage.setTextContent(sNow + " : page generated");
         }
+
+        {
+            final Element li = e(ul, "li");
+            final Element small = e(li, "small");
+            final Element copyright = e(small, "span");
+            copyright.setTextContent(Objects.requireNonNullElse(System.getenv("FTM_COPYRIGHT"), "Copyright © by the owners,"));
+        }
     }
 
     private Person loadPersonDetails(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws SQLException {
