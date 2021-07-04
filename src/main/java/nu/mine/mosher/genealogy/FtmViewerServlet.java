@@ -157,7 +157,10 @@ public class FtmViewerServlet extends HttpServlet {
 
         Optional<Document> dom = Optional.empty();
 
-        if (nameTree.isPresent() && uuidPerson.isPresent()) {
+        if (!PUBLIC_ACCESS && !role.authorized()) {
+            LOG.info("Unauthorized access blocked. Sending to home page.");
+            dom = Optional.of(pageIndexDatabases(role));
+        } else if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
