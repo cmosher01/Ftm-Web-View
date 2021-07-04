@@ -3,8 +3,10 @@ sudo: required
 services:
   - docker
 script:
-  - 'docker build -t ftm-web-view .'
+  - 'DOCKER_IMAGE=ftm-web-view'
+  - 'docker build -t $DOCKER_IMAGE .'
 after_success:
+  - 'echo $DOCKER_IMAGE'
   - 'docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN'
-  - 'docker tag ftm-web-view $DOCKER_USERNAME/ftm-web-view:latest'
-  - 'docker push $DOCKER_USERNAME/ftm-web-view:latest'
+  - 'docker tag $DOCKER_IMAGE $DOCKER_USERNAME/$DOCKER_IMAGE:latest'
+  - 'docker push $DOCKER_USERNAME/$DOCKER_IMAGE:latest'

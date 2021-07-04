@@ -7,7 +7,7 @@
 >
     <servlet>
         <servlet-name>ftm-viewer</servlet-name>
-        <servlet-class>nu.mine.mosher.gedcom.FtmViewerServlet</servlet-class>
+        <servlet-class>nu.mine.mosher.genealogy.FtmViewerServlet</servlet-class>
         <init-param>
             <param-name>development</param-name>
             <param-value>false</param-value>

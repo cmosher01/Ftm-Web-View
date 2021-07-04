@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="nu.mine.mosher.genealogy.ParentsMap">
+    <resultMap id="result" type="nu.mine.mosher.genealogy.PersonParent" autoMapping="false">
+        <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
+        <constructor>
+            <arg column="i" name="i"/>
+            <arg column="id" name="id"/>
+            <arg column="name" name="name"/>
+            <arg column="nature" name="nature"/>
+            <arg column="grandparents" name="grandparents"/>
+        </constructor>
+    </resultMap>
+
+    <select id="select" resultMap="result">
+        WITH Param AS (
+            SELECT ID as PersonID FROM Person WHERE PersonGUID = #{id}
+        )
+
+        SELECT
+            1 AS i,
+            ParentPerson.PersonGUID as id,
+            ParentPerson.FullNameReversed as name,
+            ChildRelationship.Nature1 AS nature, -- note: nature 1
+            (SELECT COUNT(*) FROM ChildRelationship C WHERE C.PersonID = ParentPerson.ID) AS grandparents
+            --Relationship.Private AS prvt_parent,
+            --ChildRelationship.Private AS prvt_child,
+            --ChildRelationship.Preferred AS pref
+        FROM
+            Param LEFT OUTER JOIN
+            ChildRelationship ON (ChildRelationship.PersonID = Param.PersonID) LEFT OUTER JOIN
+            Relationship ON (Relationship.ID = ChildRelationship.RelationshipID) LEFT OUTER JOIN
+            Person AS ParentPerson ON (ParentPerson.ID = Relationship.Person1ID) -- note: parent 1
+
+        UNION ALL
+
+        SELECT
+            2 AS i,
+            ParentPerson.PersonGUID as id,
+            ParentPerson.FullNameReversed as name,
+            ChildRelationship.Nature2 AS nature, -- note: nature 2
+            (SELECT COUNT(*) FROM ChildRelationship C WHERE C.PersonID = ParentPerson.ID) AS grandparents
+            --Relationship.Private,
+            --ChildRelationship.Private,
+            --ChildRelationship.Preferred
+        FROM
+            Param LEFT OUTER JOIN
+            ChildRelationship ON (ChildRelationship.PersonID = Param.PersonID) LEFT OUTER JOIN
+            Relationship ON (Relationship.ID = ChildRelationship.RelationshipID) LEFT OUTER JOIN
+            Person AS ParentPerson ON (ParentPerson.ID = Relationship.Person2ID) -- note: parent 2
+
+        ORDER BY
+            i
+    </select>
+</mapper>

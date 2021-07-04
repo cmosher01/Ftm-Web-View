@@ -14,7 +14,7 @@ function signOut() {
 
 function renderButton() {
     gapi.signin2.render(
-        'gedcom-web-view-google-signin',
+        'ftm-web-view-google-signin',
         {
             'scope': 'profile email',
             'width': 120,
