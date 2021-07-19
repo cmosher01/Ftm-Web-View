@@ -9,6 +9,7 @@
       <arg column="name" name="name"/>
       <arg column="pkid" name="pkid"/>
       <arg column="dateBirth" name="dateBirth"/>
+      <arg column="dateDeath" name="dateDeath"/>
     </constructor>
   </resultMap>
   <select id="select" resultMap="result">
@@ -17,7 +18,8 @@
           Refn.Text AS refn,
           Person.FullNameReversed AS name,
           Person.ID AS pkid,
-          Birth.Date AS dateBirth
+          Birth.Date AS dateBirth,
+          Death.Date AS dateDeath
       FROM
           Person LEFT OUTER JOIN
           Fact AS Refn ON (
@@ -33,6 +35,13 @@
               Birth.LinkID = Person.ID AND
               Birth.FactTypeID IN (
                   SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
+              )
+          ) LEFT OUTER JOIN
+          Fact AS Death ON (
+              Death.LinkTableID = 5 AND
+              Death.LinkID = Person.ID AND
+              Death.FactTypeID IN (
+                  SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
               )
           )
   </select>

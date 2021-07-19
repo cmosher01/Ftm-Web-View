@@ -9,6 +9,7 @@
       <arg column="name" name="name"/>
       <arg column="pkid" name="pkid"/>
       <arg column="dateBirth" name="dateBirth"/>
+      <arg column="dateDeath" name="dateDeath"/>
     </constructor>
   </resultMap>
   <select id="select" parameterType="long" resultMap="result">
@@ -28,7 +29,19 @@
                   Birth.FactTypeID IN (
                       SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
                   )
-          ) AS dateBirth
+          ) AS dateBirth,
+          (
+              SELECT
+                  MAX(Death.Date)
+              FROM
+                  Fact AS Death
+              WHERE
+                  Death.LinkTableID = 5 AND
+                  Death.LinkID = Person.ID AND
+                  Death.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
+                  )
+          ) AS dateDeath
       FROM
           Person LEFT OUTER JOIN
           Fact AS Refn ON (

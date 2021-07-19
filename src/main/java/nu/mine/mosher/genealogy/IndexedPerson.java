@@ -3,9 +3,9 @@ package nu.mine.mosher.genealogy;
 import java.util.*;
 
 
-public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateBirth) implements Comparable<IndexedPerson> {
+public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateBirth, Day dateDeath) implements Comparable<IndexedPerson> {
     public static IndexedPerson from(final UUID uuidPerson) {
-        return new IndexedPerson(uuidPerson, new Refn(uuidPerson), null, 0, Day.UNKNOWN);
+        return new IndexedPerson(uuidPerson, new Refn(uuidPerson), null, 0, Day.UNKNOWN, Day.UNKNOWN);
     }
 
     @Override
@@ -22,6 +22,10 @@ public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateB
     }
 
     public boolean isRecent() {
-        return Objects.nonNull(dateBirth) && dateBirth.isRecent();
+        return Objects.nonNull(this.dateBirth) && this.dateBirth.isRecent();
+    }
+
+    public String dates() {
+        return this.dateBirth.simplistic()+"-"+this.dateDeath.simplistic();
     }
 }

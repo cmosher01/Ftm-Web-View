@@ -106,6 +106,28 @@ public class Day implements Comparable<Day> {
         return this.latest.isRecent() || this.earliest.isRecent();
     }
 
+    public String simplistic() {
+        if (!this.other.isBlank()) {
+            return "\u00d7\u00d7\u00d7\u00d7";
+        }
+        if (this.earliest.equals(this.latest)) {
+            if (this.earliest.unknown || this.earliest.noYear) {
+                return "\u00d7\u00d7\u00d7\u00d7";
+            }
+            return String.format("%04d",this.earliest.ld.getYear());
+        }
+
+        if (this.earliest.unknown || this.earliest.noYear) {
+            return String.format("%04d",this.latest.ld.getYear());
+        }
+
+        if (this.latest.unknown || this.latest.noYear) {
+            return String.format("%04d",this.earliest.ld.getYear());
+        }
+
+        return String.format("%04d",(this.earliest.ld.getYear()+this.latest.ld.getYear())/2);
+    }
+
 
     private static class FlaggedDate implements Comparable<FlaggedDate> {
         private final long flags;

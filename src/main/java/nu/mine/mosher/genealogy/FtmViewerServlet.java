@@ -429,6 +429,11 @@ public class FtmViewerServlet extends HttpServlet {
             if (role.authorized() || (!indexedPerson.isRecent() && PUBLIC_ACCESS)) {
                 final Element li = e(ul, "li");
                 Styles.add(li, Styles.Render.hanging);
+
+                final Element spDates = e(li, "span");
+                Styles.add(spDates, Styles.Render.smaller);
+                spDates.setTextContent(indexedPerson.dates()+" ");
+
                 final Element ap = e(li, "a");
                 ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
                 ap.setTextContent(indexedPerson.name());
