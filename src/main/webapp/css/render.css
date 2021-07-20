@@ -20,6 +20,10 @@
     line-height: 1.4;
 }
 
+.rend-dim {
+    color: var(--sol-base1);
+}
+
 .rend-hi-0 {
     color: var(--sol-violet);
 }

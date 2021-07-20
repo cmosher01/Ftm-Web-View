@@ -11,7 +11,11 @@ public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateB
     @Override
     // not consistent with equals
     public int compareTo(final IndexedPerson that) {
-        return this.name().compareToIgnoreCase(that.name());
+        return Comparator.
+             comparing(IndexedPerson::name).
+             thenComparing(IndexedPerson::dateBirth).
+             thenComparing(IndexedPerson::dateDeath).
+             compare(this, that);
     }
 
     public UUID preferRefn() {

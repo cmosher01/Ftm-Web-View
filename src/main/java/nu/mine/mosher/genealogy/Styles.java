@@ -14,6 +14,7 @@ public final class Styles {
         indent("rend-indent"),
         hanging("rend-hanging"),
         eqlines("rend-eqlines"),
+        dim("rend-dim"),
         hi0("rend-hi-0"),
         hi1("rend-hi-1"),
         hi2("rend-hi-2"),

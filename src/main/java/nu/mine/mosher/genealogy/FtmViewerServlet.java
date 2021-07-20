@@ -432,6 +432,7 @@ public class FtmViewerServlet extends HttpServlet {
 
                 final Element spDates = e(li, "span");
                 Styles.add(spDates, Styles.Render.smaller);
+                Styles.add(spDates, Styles.Render.dim);
                 spDates.setTextContent(indexedPerson.dates()+" ");
 
                 final Element ap = e(li, "a");
