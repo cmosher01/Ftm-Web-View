@@ -25,8 +25,6 @@ USER root
 ENV HOME /root
 WORKDIR $HOME
 
-ENV JAVA_OPTS --enable-preview
-
 COPY src/main/tomcat /usr/local/tomcat/conf
 
 COPY --from=build /root/build/libs/*.war /usr/local/tomcat/webapps/ROOT.war

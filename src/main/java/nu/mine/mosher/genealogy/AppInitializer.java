@@ -2,7 +2,6 @@ package nu.mine.mosher.genealogy;
 
 import org.apache.ibatis.session.*;
 import org.slf4j.*;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
 import java.sql.*;
@@ -12,9 +11,6 @@ public class AppInitializer {
     private static final Logger LOG;
 
     static {
-        SLF4JBridgeHandler.removeHandlersForRootLogger();
-        SLF4JBridgeHandler.install();
-        java.util.logging.Logger.getLogger("").setLevel(java.util.logging.Level.FINEST);
         LOG = LoggerFactory.getLogger(AppInitializer.class);
         LOG.trace("AppInitializer static initialization of logging framework complete");
     }

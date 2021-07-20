@@ -39,11 +39,14 @@ TODO synch info (note: only in databases that have been sync'd)
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
 
-    private static final boolean PUBLIC_ACCESS = false;
+    private static final boolean PUBLIC_ACCESS = (System.getenv("ftm_public_access") != null);
 
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
         LOG.trace("REQUEST HANDLING: BEGIN {}", "=".repeat(50));
+        if (PUBLIC_ACCESS) {
+            LOG.warn("PUBLIC ACCESS IS ALLOWED");
+        }
         try {
             LOG.trace("GET {}", request.getRequestURI());
             logRequestInfo(request);

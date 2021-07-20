@@ -3,7 +3,7 @@ plugins {
     id 'war'
 }
 
-version="1.1.0"
+version="1.2.0"
 
 repositories {
     mavenCentral()
@@ -34,13 +34,14 @@ dependencies {
     implementation group: 'nu.mine.mosher.xml', name: 'xslt-pipeline', version: 'latest.integration'
     providedCompile group: 'jakarta.servlet', name: 'jakarta.servlet-api', version: 'latest.integration'
 
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'latest.release'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: 'latest.release'
-    implementation group: 'org.slf4j', name: 'jul-to-slf4j', version: 'latest.integration'
+    runtimeOnly group: 'org.slf4j', name: 'slf4j-jdk14', version: 'latest.release'
     runtimeOnly group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.release'
     runtimeOnly group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.release'
 
-    implementation group: "org.apache.tika", name: "tika-parsers", version: '1.+'
+    implementation group: 'org.apache.tika', name: 'tika-parsers', version: '1.+', {
+        exclude group: 'org.slf4j', module: 'jul-to-slf4j'
+    }
     implementation group: 'org.jsoup', name: 'jsoup', version: 'latest.release'
     implementation group: 'org.nibor.autolink', name: 'autolink', version: 'latest.release'
 
