@@ -1,4 +1,4 @@
-FROM openjdk:16 AS build
+FROM amazoncorretto:17 AS build
 
 MAINTAINER Christopher A. Mosher <cmosher01@gmail.com>
 
@@ -19,7 +19,7 @@ RUN ./gradlew dependencies --configuration=compileClasspath
 
 
 
-FROM tomcat:10-jdk16 AS run
+FROM tomcat:jdk17-corretto AS run
 
 USER root
 ENV HOME /root
