@@ -1,6 +1,7 @@
 package nu.mine.mosher.genealogy;
 
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.*;
 import org.jdom2.JDOMException;
@@ -15,25 +16,26 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.*;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.*;
 
 import static nu.mine.mosher.genealogy.XmlUtils.XHTML_NAMESPACE;
 
 public class HtmlUtils {
-    public static org.w3c.dom.Node  html(final String input) {
-        final Cleaner cleaner = new Cleaner(Whitelist.relaxed());
-        final Document document = cleaner.clean(Jsoup.parseBodyFragment(input));
-        document.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
-        document.outputSettings().escapeMode(Entities.EscapeMode.xhtml);
-        document.outputSettings().charset(StandardCharsets.UTF_8);
-        document.outputSettings().prettyPrint(false);
+    public static org.w3c.dom.Node html(final String in) {
+        final var jsoup = Jsoup.parseBodyFragment(in);
+        configureJsoup(jsoup);
+        return W3CDom.convert(jsoup).getFirstChild().getFirstChild().getNextSibling();
+    }
 
-        document.getElementsByTag("body").first().tagName("div").attr("xmlns", XHTML_NAMESPACE);
+    private static void configureJsoup(final Document jsoup) {
+        jsoup.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
+        jsoup.outputSettings().escapeMode(org.jsoup.nodes.Entities.EscapeMode.xhtml);
+        jsoup.outputSettings().charset(StandardCharsets.UTF_8);
+        jsoup.outputSettings().prettyPrint(true);
 
-        final org.w3c.dom.Document dom = W3CDom.convert(document);
-
-        return dom.getFirstChild().getFirstChild().getNextSibling();
+        jsoup.getElementsByTag("body").first().tagName("div").attr("xmlns", XmlUtils.XHTML_NAMESPACE);
     }
 
     public static boolean looksLikeHtml(final String input) {

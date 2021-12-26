@@ -1,7 +1,7 @@
 package nu.mine.mosher.genealogy;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.*;
-import nu.mine.mosher.xml.TeiToXhtml5;
 import org.apache.hc.core5.net.*;
 import org.apache.ibatis.session.*;
 import org.apache.tika.exception.TikaException;
@@ -62,8 +62,6 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (request.getServletPath().equals("/")) {
             dom = handleRequest(request, response);
-        } else if (request.getServletPath().endsWith(".d")) {
-            handleDynamicResourceRequest(request, response);
         } else {
             LOG.warn("Unexpected servlet path: {}", request.getServletPath());
             LOG.info("requested resource not found");
@@ -76,16 +74,6 @@ public class FtmViewerServlet extends HttpServlet {
             XmlUtils.serialize(dom.get(), out, false, true);
             out.flush();
             out.close();
-        }
-    }
-
-    private void handleDynamicResourceRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (request.getServletPath().equalsIgnoreCase("/css/tei.css.d")) {
-            response.setContentType("text/css");
-            final String cssTei = TeiToXhtml5.getCss();
-            final PrintWriter out = response.getWriter();
-            out.print(cssTei);
-            out.flush();
         }
     }
 
@@ -167,7 +155,7 @@ public class FtmViewerServlet extends HttpServlet {
             if (indexedDatabase.isPresent()) {
                 final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(role, indexedDatabase.get(), optFiltered.get()));
+                    dom = Optional.of(pagePerson(request, role, indexedDatabase.get(), optFiltered.get()));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                     if (indexedDatabaseOther.isPresent()) {
@@ -186,7 +174,7 @@ public class FtmViewerServlet extends HttpServlet {
                 }
             }
         } else if (pkidCitation.isPresent() && indexedDatabase.isPresent()) {
-            dom = Optional.of(pageSource(role, indexedDatabase.get(), pkidCitation.get()));
+            dom = Optional.of(pageSource(request, role, indexedDatabase.get(), pkidCitation.get()));
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 dom = Optional.of(pageIndexPeople(role, indexedDatabase.get()));
@@ -555,7 +543,7 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
+    private Document pagePerson(final HttpServletRequest req, Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
         final Footnotes<EventSource> footnotes = new Footnotes<>();
 
@@ -590,7 +578,7 @@ public class FtmViewerServlet extends HttpServlet {
         fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
         fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
         e(body, "hr");
-        fragFootnotes(indexedDatabase, body, footnotes);
+        fragFootnotes(req, indexedDatabase, body, footnotes);
         e(body, "hr");
         fragFooter(Optional.of(person), body);
 
@@ -599,7 +587,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private void fragFootnotes(final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
+    private void fragFootnotes(final HttpServletRequest req, final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
         final int n = footnotes.size();
         if (n <= 0) {
             return;
@@ -621,7 +609,7 @@ public class FtmViewerServlet extends HttpServlet {
             final Element footnum = e(sup, "span");
             footnum.setTextContent(formatFootnum(i, n));
 
-            footnotes.getFootnote(i).appendTo(footnote, indexedDatabase);
+            footnotes.getFootnote(i).appendTo(req, footnote, indexedDatabase);
         }
     }
 
@@ -995,7 +983,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Document pageSource(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
+    private Document pageSource(final HttpServletRequest req, final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
         final EventSource eventSource;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final SourceMap map = session.getMapper(SourceMap.class);
@@ -1028,7 +1016,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element sectionCitation = e(body, "section");
         final Element divCitation = e(sectionCitation, "div");
-        eventSource.appendTo(divCitation, indexedDatabase);
+        eventSource.appendTo(req, divCitation, indexedDatabase);
 
         e(body, "hr");
 
@@ -1040,7 +1028,7 @@ public class FtmViewerServlet extends HttpServlet {
         } else {
             final String trans = eventSource.comment();
             final Node node;
-            if (!teiStyleIfPossible(trans, divTranscript)) {
+            if (!teiStyleIfPossible(req, trans, divTranscript)) {
                 if (looksLikeHtml(trans)) {
                     node = html(trans);
                 } else {

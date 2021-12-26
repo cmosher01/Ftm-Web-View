@@ -2,6 +2,7 @@ package nu.mine.mosher.genealogy;
 
 
 
+import jakarta.servlet.http.HttpServletRequest;
 import nu.mine.mosher.xml.*;
 import org.apache.tika.exception.TikaException;
 import org.jdom2.JDOMException;
@@ -77,14 +78,14 @@ public record EventSource(
         return Objects.hash(this.pkidCitation());
     }
 
-    public void appendTo(final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
-        if (!teiStyleIfPossible(safe(footnote()), parent)) {
-            if (!teiStyleIfPossible(safe(page()), parent)) {
+    public void appendTo(final HttpServletRequest req, final Element parent, final IndexedDatabase indexedDatabase) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
+        if (!teiStyleIfPossible(req, safe(footnote()), parent)) {
+            if (!teiStyleIfPossible(req, safe(page()), parent)) {
                 final Node node;
                 if (!safe(footnote()).isBlank()) {
                     node = HtmlUtils.tika(footnote());
                 } else {
-                    node = buildStandardCitationAsTei();
+                    node = buildStandardCitationAsTei(req);
                 }
                 if (safe(node.getTextContent()).isBlank()) {
                     t(node, "[this note is blank]");
@@ -106,7 +107,7 @@ public record EventSource(
         appendLinksIcons(parent, indexedDatabase);
     }
 
-    private Node buildStandardCitationAsTei() throws IOException, TransformerException, ParserConfigurationException, SAXException {
+    private Node buildStandardCitationAsTei(final HttpServletRequest req) throws IOException, TransformerException, ParserConfigurationException, SAXException {
         final boolean published = !safe(pub()).isBlank();
         final String sAuthor = safe(author());
         final String sTitle = safe(title());
@@ -172,7 +173,7 @@ public record EventSource(
             t(eBibl, ".");
         }
 
-        TeiToXhtml5.runPipeline(p);
+        TeiToXhtml5.runPipeline(req, p);
 
         return nodeFromDoc(p.accessDom());
     }

@@ -1,5 +1,6 @@
 package nu.mine.mosher.genealogy;
 
+import jakarta.servlet.http.HttpServletRequest;
 import nu.mine.mosher.xml.*;
 import org.nibor.autolink.*;
 import org.slf4j.*;
@@ -153,22 +154,22 @@ public class XmlUtils {
         return s.startsWith("<bibl") || s.startsWith("<text") || s.contains("<teiHeader");
     }
 
-    public static boolean teiStyleIfPossible(final String tei, Element divCitation) {
+    public static boolean teiStyleIfPossible(final HttpServletRequest req, final String tei, Element divCitation) {
         if (!looksLikeTei(tei)) {
             return false;
         }
 
         if (tei.startsWith("<bibl")) {
-            return teiStyleIfPossible(wrapTeiBibl(tei), divCitation);
+            return teiStyleIfPossible(req, wrapTeiBibl(tei), divCitation);
         }
 
         if (tei.startsWith("<text")) {
-            return teiStyleIfPossible(wrapTeiText(tei), divCitation);
+            return teiStyleIfPossible(req, wrapTeiText(tei), divCitation);
         }
 
         if (tei.contains("<teiHeader")) {
             try {
-                putTeiThroughPipeline(tei, divCitation);
+                putTeiThroughPipeline(req, tei, divCitation);
             } catch (final Throwable e) {
                 LOG.warn("Error in TEI document; using raw XML instead.", e);
                 divCitation.setTextContent(tei);
@@ -179,9 +180,9 @@ public class XmlUtils {
         return false;
     }
 
-    private static void putTeiThroughPipeline(final String tei, final Element element) throws IOException, TransformerException, ParserConfigurationException, SAXException {
+    private static void putTeiThroughPipeline(final HttpServletRequest req, final String tei, final Element element) throws IOException, TransformerException, ParserConfigurationException, SAXException {
         final BufferedInputStream inXml = new BufferedInputStream(new ByteArrayInputStream(tei.getBytes(StandardCharsets.UTF_8)));
-        TeiToXhtml5.transform(inXml, element);
+        TeiToXhtml5.transform(req, inXml, element);
     }
 
     private static String wrapTeiText(final String text) {
