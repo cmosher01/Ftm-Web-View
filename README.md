@@ -178,6 +178,46 @@ TODO: Are they stored in UTC? How does it handle Daylight Saving Time?
 
 lat/long: r*(180/pi), +:N/E, -:S/W
 
+
+### primary tables relationships
+
+     /->Relationship
+    |   ------------
+    |   Person1ID ---------\
+    |   Person2ID ----------\
+    |                        |
+    |                        +---------> Person
+    |                        |
+    |   ChildRelationship    |
+    |   -----------------    |
+     \- RelationshipID       |
+        PersonID -----------/
+
+
+    MediaLink
+    ---------
+    MediaFileID ------> MediaFile
+                        ---------
+
+
+    SourceLink (shared citations)
+    ----------
+    SourceID ------> Source (citation)
+                     --------------
+                     MasterSourceID ------> MasterSource (source)
+                                            ------------
+                                            RepositoryID ------> Repository
+                                                                 ----------
+
+
+    Fact
+    -------
+    PlaceID ------> Place
+                    -----
+                    Name (formatted place name)
+
+For format of `Place.Name` column, see [Place.java](src/main/java/nu/mine/mosher/genealogy/Place.java)
+
 ### metalinks
 
 parent      |child
