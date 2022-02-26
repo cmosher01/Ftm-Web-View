@@ -33,6 +33,7 @@
           Fact AS Birth ON (
               Birth.LinkTableID = 5 AND
               Birth.LinkID = Person.ID AND
+              Birth.Preferred > 0 AND
               Birth.FactTypeID IN (
                   SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
               )
@@ -40,6 +41,7 @@
           Fact AS Death ON (
               Death.LinkTableID = 5 AND
               Death.LinkID = Person.ID AND
+              Death.Preferred > 0 AND
               Death.FactTypeID IN (
                   SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
               )
