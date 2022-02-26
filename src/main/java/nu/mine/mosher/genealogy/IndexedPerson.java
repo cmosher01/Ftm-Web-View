@@ -12,7 +12,7 @@ public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateB
     // not consistent with equals
     public int compareTo(final IndexedPerson that) {
         return Comparator.
-             comparing(IndexedPerson::name).
+             comparing(IndexedPerson::name, String::compareToIgnoreCase).
              thenComparing(IndexedPerson::dateBirth).
              thenComparing(IndexedPerson::dateDeath).
              compare(this, that);

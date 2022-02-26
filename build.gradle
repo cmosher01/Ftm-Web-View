@@ -3,14 +3,14 @@ plugins {
     id 'war'
 }
 
-version="1.2.0"
+version = '1.2.1'
+
+group = 'nu.mine.mosher.genealogy'
 
 repositories {
     mavenCentral()
     google()
 }
-
-group = 'nu.mine.mosher.genealogy'
 
 java {
     toolchain {
