@@ -20,24 +20,26 @@
           Person.ID AS pkid,
           (
               SELECT
-                  MAX(Birth.Date)
+                  Birth.Date
               FROM
                   Fact AS Birth
               WHERE
                   Birth.LinkTableID = 5 AND
                   Birth.LinkID = Person.ID AND
+                  Birth.Preferred > 0 AND
                   Birth.FactTypeID IN (
                       SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
                   )
           ) AS dateBirth,
           (
               SELECT
-                  MAX(Death.Date)
+                  Death.Date
               FROM
                   Fact AS Death
               WHERE
                   Death.LinkTableID = 5 AND
                   Death.LinkID = Person.ID AND
+                  Death.Preferred > 0 AND
                   Death.FactTypeID IN (
                     SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
                   )

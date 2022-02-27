@@ -1,6 +1,5 @@
 package nu.mine.mosher.genealogy;
 
-import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.*;
 import org.apache.hc.core5.net.*;
 import org.apache.ibatis.session.*;
@@ -117,14 +116,14 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException {
-        final Optional<UUID> uuidPerson = getRequestedPerson(request);
+        final Optional<UUID> uuidPerson = getRequestedPersonUuid(request);
         if (uuidPerson.isPresent()) {
             LOG.debug("person_uuid: {}", uuidPerson.get());
         } else {
             LOG.debug("no valid 'person_uuid' query parameter found");
         }
 
-        final Optional<String> nameTree = getRequestedTree(request);
+        final Optional<String> nameTree = getRequestedTreeName(request);
         final Optional<IndexedDatabase> indexedDatabase;
         if (nameTree.isPresent()) {
             LOG.debug("tree: {}", nameTree.get());
@@ -139,7 +138,7 @@ public class FtmViewerServlet extends HttpServlet {
             indexedDatabase = Optional.empty();
         }
 
-        final Optional<Integer> pkidCitation = getRequestedSource(request);
+        final Optional<Integer> pkidCitation = getRequestedSourcePkid(request);
 
         final Auth.RbacRole role = Auth.auth(request);
         LOG.debug("Resulting role: {}", role);
@@ -283,7 +282,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private static Optional<String> getRequestedTree(final HttpServletRequest request) {
+    private static Optional<String> getRequestedTreeName(final HttpServletRequest request) {
         final Optional<String> optNameTree = Optional.ofNullable(request.getParameter("tree"));
         if (optNameTree.isPresent() && !optNameTree.get().isBlank()) {
             return optNameTree;
@@ -291,7 +290,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private static Optional<UUID> getRequestedPerson(final HttpServletRequest request) {
+    private static Optional<UUID> getRequestedPersonUuid(final HttpServletRequest request) {
         final Optional<String> optStringUuidPerson = Optional.ofNullable(request.getParameter("person_uuid"));
         if (optStringUuidPerson.isPresent()) {
             try {
@@ -303,7 +302,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private static Optional<Integer> getRequestedSource(final HttpServletRequest request) {
+    private static Optional<Integer> getRequestedSourcePkid(final HttpServletRequest request) {
         final Optional<String> optPkidSource = Optional.ofNullable(request.getParameter("source"));
         if (optPkidSource.isPresent() && !optPkidSource.get().isBlank()) {
             try {
@@ -798,7 +797,7 @@ public class FtmViewerServlet extends HttpServlet {
             final Element li = e(ul, "li");
             final Element small = e(li, "small");
             final Element copyright = e(small, "span");
-            copyright.setTextContent(Objects.requireNonNullElse(System.getenv("FTM_COPYRIGHT"), "Copyright © by the owners,"));
+            copyright.setTextContent(Objects.requireNonNullElse(System.getenv("FTM_COPYRIGHT"), "Copyright © by the owners."));
         }
     }
 
