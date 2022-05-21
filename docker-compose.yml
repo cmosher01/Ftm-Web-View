@@ -14,6 +14,8 @@ services:
     environment:
       ftm_dir: '/srv'
       CLIENT_ID: "${CLIENT_ID}"
-      ftm_public_access:
+      ftm_public_access: 'public'
+      FTM_COPYRIGHT: "Copyright © 2022, by John Doe, Anytown, USA."
+      FTM_AUTHOR: "John Doe"
     volumes:
       - './example:/srv:ro'

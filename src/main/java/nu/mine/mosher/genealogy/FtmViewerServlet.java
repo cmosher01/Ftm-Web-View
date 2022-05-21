@@ -116,6 +116,8 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException {
+        final var now = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
         final Optional<UUID> uuidPerson = getRequestedPersonUuid(request);
         if (uuidPerson.isPresent()) {
             LOG.debug("person_uuid: {}", uuidPerson.get());
@@ -149,12 +151,12 @@ public class FtmViewerServlet extends HttpServlet {
 
         if (!PUBLIC_ACCESS && !role.authorized()) {
             LOG.info("Unauthorized access blocked. Sending to home page.");
-            dom = Optional.of(pageIndexDatabases(role));
+            dom = Optional.of(pageIndexDatabases(role, now));
         } else if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(request, role, indexedDatabase.get(), optFiltered.get()));
+                    dom = Optional.of(pagePerson(request, role, indexedDatabase.get(), optFiltered.get(), now));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                     if (indexedDatabaseOther.isPresent()) {
@@ -173,10 +175,10 @@ public class FtmViewerServlet extends HttpServlet {
                 }
             }
         } else if (pkidCitation.isPresent() && indexedDatabase.isPresent()) {
-            dom = Optional.of(pageSource(request, role, indexedDatabase.get(), pkidCitation.get()));
+            dom = Optional.of(pageSource(request, role, indexedDatabase.get(), pkidCitation.get(), now));
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                dom = Optional.of(pageIndexPeople(role, indexedDatabase.get()));
+                dom = Optional.of(pageIndexPeople(role, indexedDatabase.get(), now));
             } else {
                 LOG.info("tree does not currently exist");
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -190,7 +192,7 @@ public class FtmViewerServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } else {
-            dom = Optional.of(pageIndexDatabases(role));
+            dom = Optional.of(pageIndexDatabases(role, now));
         }
 
         return dom;
@@ -315,7 +317,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private Document pageIndexDatabases(final Auth.RbacRole role) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageIndexDatabases(final Auth.RbacRole role, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final Document dom = XmlUtils.empty();
 
 
@@ -361,12 +363,12 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(Optional.empty(), body);
+        fragFooter(Optional.empty(), body, now);
 
         return dom;
     }
 
-    private Document pageIndexPeople(Auth.RbacRole role, final IndexedDatabase indexedDatabase) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageIndexPeople(Auth.RbacRole role, final IndexedDatabase indexedDatabase, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final List<IndexedPerson> list;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
@@ -433,7 +435,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(Optional.empty(), body);
+        fragFooter(Optional.empty(), body, now);
 
         return dom;
     }
@@ -451,6 +453,20 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("defer", "defer");
         e = e(head, "script");
         e.setAttribute("src", "./js/google.js");
+    }
+
+    private void addNoMenuHead(final Element head) {
+        Element e;
+        e = e(head, "script");
+        e.setAttribute("src", "./js/nomenu.js");
+        e.setAttribute("defer", "defer");
+    }
+
+    private void addCopyCitationHead(final Element head) {
+        Element e;
+        e = e(head, "script");
+        e.setAttribute("src", "./js/citation.js");
+        e.setAttribute("defer", "defer");
     }
 
     private void addAuthNav(final Auth.RbacRole role, final Element nav) {
@@ -542,7 +558,7 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(final HttpServletRequest req, Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
+    private Document pagePerson(final HttpServletRequest req, Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
         final Footnotes<EventSource> footnotes = new Footnotes<>();
 
@@ -558,13 +574,15 @@ public class FtmViewerServlet extends HttpServlet {
         final Element head = e(html, "head");
 
         final Element title = e(head, "title");
-        title.setTextContent(person.nameWithSlashes());
+        title.setTextContent(styleName(person.nameWithSlashes()));
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
         css.setAttribute("href", "./css/page-person.css");
 
         addAuthHead(head);
+        addNoMenuHead(head);
+        addCopyCitationHead(head);
 
         final Element body = e(html, "body");
 
@@ -577,13 +595,73 @@ public class FtmViewerServlet extends HttpServlet {
         fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
         fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
         e(body, "hr");
+        fragCite(req, body, person, indexedDatabase, now);
+        e(body, "hr");
         fragFootnotes(req, indexedDatabase, body, footnotes);
         e(body, "hr");
-        fragFooter(Optional.of(person), body);
+        fragFooter(Optional.of(person), body, now);
 
 
 
         return dom;
+    }
+
+    private void fragCite(final HttpServletRequest req, final Element body, final Person person, final IndexedDatabase indexedDatabase, final ZonedDateTime now) {
+        final var div = e(body, "div");
+
+
+
+        final var button = e(div, "button");
+        button.setAttribute("id", "urn:uuid:52595c4e-d8ca-45e8-af3f-396e068adc46");
+        t(button, "Copy source citation");
+
+
+
+        final var citation = e(div, "div");
+        citation.setAttribute("id", "urn:uuid:a1a126ed-46fb-4f6c-a6a0-b58698f696ba");
+        citation.setAttribute("class", Styles.Render.smaller.toString()+" tei-inline");
+
+        final var optAuthor = Optional.ofNullable(System.getenv("FTM_AUTHOR"));
+        var ctext = new StringBuilder(256);
+        ctext.append(" ");
+        if (optAuthor.isPresent()) {
+            ctext.append(optAuthor.get()).append(", ");
+        };
+        ctext.append("\u201C");
+        ctext.append(styleName(person.nameWithSlashes()));
+        ctext.append("\u201D, ");
+        t(citation, ctext.toString());
+
+        final var titl = e(citation, "i");
+        t(titl, indexedDatabase.file().getName());
+
+        ctext = new StringBuilder(256);
+        ctext.append(", database (");
+        ctext.append(urlOfThisPage(req));
+        ctext.append(" : accessed ");
+        final String sNow = now.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        ctext.append(sNow);
+        ctext.append(").");
+        t(citation, ctext.toString());
+    }
+
+    private String urlOfThisPage(final HttpServletRequest req) {
+        var pre = req.getHeader("x-forwarded-prefix");
+        if (pre == null) {
+            pre = "";
+        } else if (pre.startsWith("/")) {
+            pre = pre.substring(1);
+        }
+
+        return req.getScheme() +
+            "://" +
+            req.getServerName() +
+            ":" +
+            req.getServerPort() +
+            req.getRequestURI() +
+            pre +
+            "?" +
+            req.getQueryString();
     }
 
     private void fragFootnotes(final HttpServletRequest req, final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
@@ -746,11 +824,20 @@ public class FtmViewerServlet extends HttpServlet {
         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
         final Element personName = e(h1, "span");
-        personName.setTextContent(person.nameWithSlashes());// TODO style name
+        personName.setTextContent(styleName(person.nameWithSlashes()));
         Styles.add(personName, Styles.Render.hi0);
 
         final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
         fragNoteRefs(indexedDatabase, linkPerson, h1, footnotes);
+    }
+
+    private static String styleName(String n) {
+        n = n
+            .replaceAll(" /"," ")
+            .replaceAll("/ ", " ")
+            .replaceAll("^/", "")
+            .replaceAll("/$", "");
+        return n;
     }
 
     private void fragNoteRefs(final IndexedDatabase indexedDatabase, final FtmLink link, final Element parent, final Footnotes<EventSource> footnotes) throws SQLException {
@@ -772,7 +859,7 @@ public class FtmViewerServlet extends HttpServlet {
         });
     }
 
-    private static void fragFooter(final Optional<Person> person, final Element body) {
+    private static void fragFooter(final Optional<Person> person, final Element body, final ZonedDateTime now) {
         final Element footer = e(body, "footer");
 
         final Element ul = e(footer, "ul");
@@ -788,7 +875,6 @@ public class FtmViewerServlet extends HttpServlet {
             final Element li = e(ul, "li");
             final Element small = e(li, "small");
             final Element tsPage = e(small, "span");
-            final ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
             final String sNow = now.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
             tsPage.setTextContent(sNow + " : page generated");
         }
@@ -797,7 +883,7 @@ public class FtmViewerServlet extends HttpServlet {
             final Element li = e(ul, "li");
             final Element small = e(li, "small");
             final Element copyright = e(small, "span");
-            copyright.setTextContent(Objects.requireNonNullElse(System.getenv("FTM_COPYRIGHT"), "Copyright © by the owners."));
+            copyright.setTextContent(Objects.requireNonNullElse(System.getenv("FTM_COPYRIGHT"), "Copyright © by the owners. All rights reserved."));
         }
     }
 
@@ -982,7 +1068,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Document pageSource(final HttpServletRequest req, final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
+    private Document pageSource(final HttpServletRequest req, final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
         final EventSource eventSource;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final SourceMap map = session.getMapper(SourceMap.class);
@@ -1006,6 +1092,7 @@ public class FtmViewerServlet extends HttpServlet {
         css2.setAttribute("href", "./css/page-source.css");
 
         addAuthHead(head);
+        addNoMenuHead(head);
 
         final Element body = e(html, "body");
 
@@ -1039,7 +1126,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         e(body, "hr");
 
-        fragFooter(Optional.empty(), body);
+        fragFooter(Optional.empty(), body, now);
 
         return dom;
     }

@@ -23,6 +23,12 @@ td {
     padding: 0 1em 0 0;
 }
 
+/* don't allow super- or sub-scripts to increase line height */
 sup, sub {
     line-height: 100%;
+}
+
+/* forbid user from select text */
+body {
+    user-select: none;
 }
