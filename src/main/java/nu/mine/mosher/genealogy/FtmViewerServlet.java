@@ -646,22 +646,59 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private String urlOfThisPage(final HttpServletRequest req) {
-        var pre = req.getHeader("x-forwarded-prefix");
-        if (pre == null) {
-            pre = "";
-        } else if (pre.startsWith("/")) {
-            pre = pre.substring(1);
+        var scheme = req.getHeader("x-forwarded-proto");
+        if (scheme == null || scheme.isBlank()) {
+            scheme = req.getScheme();
         }
 
-        return req.getScheme() +
+        var host = req.getHeader("x-forwarded-host");
+        if (host == null || host.isBlank()) {
+            host = req.getServerName();
+        }
+
+        var port = req.getHeader("x-forwarded-port");
+        if (port == null || port.isBlank()) {
+            port = "";
+        }
+
+        var pre = req.getHeader("x-forwarded-prefix");
+        if (pre == null || pre.isBlank()) {
+            pre = "";
+        } else {
+            if (pre.startsWith("/")) {
+                pre = pre.substring(1);
+            }
+            if (!pre.endsWith("/")) {
+                pre = pre + "/";
+            }
+        }
+
+        final var nport = getPortOrDefault(port, scheme);
+
+        return scheme +
             "://" +
-            req.getServerName() +
-            ":" +
-            req.getServerPort() +
-            req.getRequestURI() +
+            host +
+            (nport == 0 ? "" : ":" + nport) +
+            "/" +
             pre +
             "?" +
             req.getQueryString();
+    }
+
+    private static int getPortOrDefault(final String port, final String scheme) {
+        int p;
+        try {
+            p = Integer.parseInt(port);
+        } catch (final Exception ignore) {
+            p = 0;
+        }
+        if (scheme.equals("https") && p == 443) {
+            return 0;
+        }
+        if (scheme.equals("http") && p == 80) {
+            return 0;
+        }
+        return p;
     }
 
     private void fragFootnotes(final HttpServletRequest req, final IndexedDatabase indexedDatabase, final Element body, final Footnotes<EventSource> footnotes) throws JDOMException, SAXException, TikaException, IOException, TransformerException, ParserConfigurationException, URISyntaxException {
