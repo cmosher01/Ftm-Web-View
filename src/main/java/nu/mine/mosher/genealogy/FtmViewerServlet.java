@@ -1,3 +1,21 @@
+/*
+    Ftm Web View
+    Web server for Family Tree Maker (decrypted) databases.
+    Copyright © 2021-2022, by Christopher Alan Mosher
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 package nu.mine.mosher.genealogy;
 
 import jakarta.servlet.http.*;
@@ -614,19 +632,19 @@ public class FtmViewerServlet extends HttpServlet {
         final var button = e(div, "button");
         button.setAttribute("id", "urn:uuid:52595c4e-d8ca-45e8-af3f-396e068adc46");
         t(button, "Copy source citation");
+        t(div, " ");
 
 
 
         final var citation = e(div, "div");
         citation.setAttribute("id", "urn:uuid:a1a126ed-46fb-4f6c-a6a0-b58698f696ba");
-        citation.setAttribute("class", Styles.Render.smaller.toString()+" tei-inline");
+        citation.setAttribute("class", Styles.Render.smaller +" tei-inline");
 
         final var optAuthor = Optional.ofNullable(System.getenv("FTM_AUTHOR"));
         var ctext = new StringBuilder(256);
-        ctext.append(" ");
         if (optAuthor.isPresent()) {
             ctext.append(optAuthor.get()).append(", ");
-        };
+        }
         ctext.append("\u201C");
         ctext.append(styleName(person.nameWithSlashes()));
         ctext.append("\u201D, ");
@@ -1201,10 +1219,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Path dirDbs = Path.of(sdirDbs).toAbsolutePath().normalize();
         LOG.debug("Loading FTM data from trees in this directory: {}", dirDbs);
         return
-            Arrays.stream(
-                dirDbs.
-                toFile().
-                listFiles(ftmDbFilter())).
+            Arrays.stream(dirDbs.toFile().listFiles(ftmDbFilter())).
             map(IndexedDatabase::new).
             collect(Collectors.toList());
     }
