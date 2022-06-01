@@ -3,24 +3,7 @@
 <mapper namespace="nu.mine.mosher.genealogy.SourceMap">
   <!-- TODO is it easy to expand to include media and weblinks? -->
 
-  <resultMap id="result" type="nu.mine.mosher.genealogy.EventSource" autoMapping="false">
-    <constructor>
-      <arg column="pkidCitation" name="pkidCitation"/>
-      <arg column="page" name="page"/>
-      <arg column="comment" name="comment"/>
-      <arg column="footnote" name="footnote"/>
-      <arg column="apid" name="apid"/>
-      <arg column="author" name="author"/>
-      <arg column="title" name="title"/>
-      <arg column="placePub" name="placePub"/>
-      <arg column="pub" name="pub"/>
-      <arg column="datePub" name="datePub"/>
-      <arg column="callno" name="callno"/>
-      <arg column="source" name="source"/>
-      <arg column="apidSource" name="apidSource"/>
-    </constructor>
-  </resultMap>
-
+  <resultMap id="result" type="nu.mine.mosher.genealogy.EventSource" autoMapping="true"/>
   <select id="select" resultMap="result">
       SELECT
           Source.ID AS pkidCitation,

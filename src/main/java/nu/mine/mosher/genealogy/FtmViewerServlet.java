@@ -905,7 +905,7 @@ public class FtmViewerServlet extends HttpServlet {
         notes.forEach(s -> {
             final String note = safe(s.note());
             if (!note.isBlank()) {
-                final int footnum = footnotes.putFootnote(new EventSource(note));
+                final int footnum = footnotes.putFootnote(EventSource.fromNote(note));
                 final Element sup = e(parent, "sup");
                 final Element footref = e(sup, "a");
                 footref.setAttribute("href", "#f" + footnum);
@@ -1103,6 +1103,13 @@ public class FtmViewerServlet extends HttpServlet {
                     uuidLink = optRefn.get().uuid();
                 }
                 final Element tr = e(tbody, "tr");
+
+                final Element tdDate = e(tr, "td");
+                Styles.add(tdDate, Styles.Render.nowrap);
+                final Element spanDate = e(tdDate, "span");
+                ifPresent(child.dateBirth(), spanDate);
+                Styles.add(spanDate, Styles.Render.hi1);
+
                 final Element td = e(tr, "td");
                 if (child.nature().display()) {
                     final Element span = e(td, "span");

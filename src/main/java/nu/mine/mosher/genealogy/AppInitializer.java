@@ -6,6 +6,7 @@ import org.slf4j.*;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class AppInitializer {
     private static final Logger LOG;
@@ -50,6 +51,7 @@ public class AppInitializer {
 
     private static void initMybatisConfig(final Configuration config) {
         config.setCallSettersOnNulls(true);
+        config.setArgNameBasedConstructorAutoMapping(true);
 
         config.getTypeHandlerRegistry().register(FtmGuidTypeHandler.class);
         config.getTypeHandlerRegistry().register(RefnTypeHandler.class);
@@ -85,25 +87,25 @@ public class AppInitializer {
         final SqlSessionFactory sqlSessionFactory = AppInitializer.init();
         IndexedDatabase indexedDatabase = new IndexedDatabase(new File("example/mosher_other_REF.ftm"));
         try (final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file()); final SqlSession session = sqlSessionFactory.openSession(conn)) {
-//            FtmLink link = new FtmLink(FtmLinkTableID.Person, 29);
-//            Map<Integer, EventWithSources> mapEventSources =
-//                session.
-//                getMapper(EventSourcesMap.class).
-//                select(link).
-//                stream().
-//                collect(Collectors.toMap(e -> e.pkidFact, e -> e));
-            final var mapper = session.getMapper(PersonQuickMap.class);
-            final var uuid = "5ed3b4f4-ddd4-4df1-854f-c351271c841d";
-            final Long id = mapper.select(uuid);
-            if (Objects.isNull(id)) {
-                LOG.info("can't find uuid: {}", uuid);
-                return;
-            }
-            LOG.info("id: {}", id);
-
-            final var m1 = session.getMapper(PersonMap.class);
-            final var indexedPerson = m1.select(id);
-            LOG.info("indexed person: {}", indexedPerson.id());
+            FtmLink link = new FtmLink(FtmLinkTableID.Person, 238);
+            Map<Integer, EventWithSources> mapEventSources =
+                session.
+                getMapper(EventSourcesMap.class).
+                select(link).
+                stream().
+                collect(Collectors.toMap(e -> e.pkidFact, e -> e));
+//            final var mapper = session.getMapper(PersonQuickMap.class);
+//            final var uuid = "5ed3b4f4-ddd4-4df1-854f-c351271c841d";
+//            final Long id = mapper.select(uuid);
+//            if (Objects.isNull(id)) {
+//                LOG.info("can't find uuid: {}", uuid);
+//                return;
+//            }
+//            LOG.info("id: {}", id);
+//
+//            final var m1 = session.getMapper(PersonMap.class);
+//            final var indexedPerson = m1.select(id);
+//            LOG.info("indexed person: {}", indexedPerson.id());
         }
     }
 }

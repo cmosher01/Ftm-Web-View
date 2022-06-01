@@ -5,31 +5,26 @@
       <id column="pkidFact" property="pkidFact"/>
       <collection property="sources" ofType="nu.mine.mosher.genealogy.EventSource" autoMapping="false" notNullColumn="pkidCitation">
         <constructor>
-          <idArg column="pkidSourceLink" name="pkidSourceLink"/>
-          <arg column="stars" name="stars"/>
-          <arg column="just" name="just"/>
-          <arg column="pkidCitation" name="pkidCitation"/>
-          <arg column="page" name="page"/>
-          <arg column="comment" name="comment"/>
-          <arg column="footnote" name="footnote"/>
-          <arg column="apid" name="apid"/>
-          <arg column="author" name="author"/>
-          <arg column="title" name="title"/>
-          <arg column="placePub" name="placePub"/>
-          <arg column="pub" name="pub"/>
-          <arg column="datePub" name="datePub"/>
-          <arg column="callno" name="callno"/>
-          <arg column="source" name="source"/>
-          <arg column="apidSource" name="apidSource"/>
-          <arg column="weblink" name="weblink"/>
-          <arg column="note" name="note"/>
+          <idArg column="pkidSourceLink" name="pkidSourceLink" javaType="_int"/>
+          <arg column="stars" name="stars" javaType="Integer"/>
+          <arg column="just" name="just" javaType="String"/>
+          <arg column="pkidCitation" name="pkidCitation" javaType="Integer"/>
+          <arg column="page" name="page" javaType="String"/>
+          <arg column="comment" name="comment" javaType="String"/>
+          <arg column="footnote" name="footnote" javaType="String"/>
+          <arg column="apid" name="apid" javaType="String"/>
+          <arg column="author" name="author" javaType="String"/>
+          <arg column="title" name="title" javaType="String"/>
+          <arg column="placePub" name="placePub" javaType="String"/>
+          <arg column="pub" name="pub" javaType="String"/>
+          <arg column="datePub" name="datePub" javaType="String"/>
+          <arg column="callno" name="callno" javaType="String"/>
+          <arg column="source" name="source" javaType="String"/>
+          <arg column="apidSource" name="apidSource" javaType="String"/>
+          <arg column="weblink" name="weblink" javaType="String"/>
+          <arg column="note" name="note" javaType="String"/>
         </constructor>
-        <collection property="media" columnPrefix="media_" ofType="nu.mine.mosher.genealogy.MediaFile" autoMapping="false" notNullColumn="pkidMedia">
-          <constructor>
-            <idArg column="pkidMedia" name="pkidMedia"/>
-            <arg column="file" name="file"/>
-          </constructor>
-        </collection>
+        <collection property="media" columnPrefix="media_" javaType="List" ofType="nu.mine.mosher.genealogy.MediaFile" autoMapping="true" notNullColumn="pkidMedia"/>
       </collection>
     </resultMap>
     <!-- TODO Source +-0< Note -->

@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.genealogy.EventsMap">
-  <resultMap id="result" type="nu.mine.mosher.genealogy.Event" autoMapping="false">
-    <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
-    <constructor>
-      <arg column="pkid" name="pkid"/>
-      <arg column="date" name="date"/>
-      <arg column="place" name="place"/>
-      <arg column="tag" name="tag"/>
-      <arg column="type" name="type"/>
-      <arg column="description" name="description"/>
-    </constructor>
-  </resultMap>
+  <resultMap id="result" type="nu.mine.mosher.genealogy.Event" autoMapping="true"/>
     <select id="select" resultMap="result" resultOrdered="true">
         SELECT
             Fact.ID AS pkid,

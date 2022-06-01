@@ -6,16 +6,7 @@
 <!--    SS.TreeID AS ancestryTreeID-->
 <!--    LEFT OUTER JOIN Sync_State SS-->
 
-    <resultMap id="result" type="nu.mine.mosher.genealogy.Person" autoMapping="false">
-        <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
-        <constructor>
-          <arg column="id" name="id"/>
-          <arg column="nameWithSlashes" name="nameWithSlashes"/>
-          <arg column="pkid" name="pkid"/>
-          <arg column="lastmod" name="lastmod"/>
-        </constructor>
-    </resultMap>
-
+    <resultMap id="result" type="nu.mine.mosher.genealogy.Person" autoMapping="true"/>
     <select id="select" resultMap="result">
         SELECT
             Person.PersonGUID AS id,

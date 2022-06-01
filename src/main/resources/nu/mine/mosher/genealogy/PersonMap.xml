@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.genealogy.PersonMap">
-  <resultMap id="result" type="nu.mine.mosher.genealogy.IndexedPerson" autoMapping="false">
-    <!-- workaround for https://github.com/mybatis/mybatis-3/issues/2207 -->
-    <constructor>
-      <arg column="id" name="id"/>
-      <arg column="refn" name="refn"/>
-      <arg column="name" name="name"/>
-      <arg column="pkid" name="pkid"/>
-      <arg column="dateBirth" name="dateBirth"/>
-      <arg column="dateDeath" name="dateDeath"/>
-    </constructor>
-  </resultMap>
+  <resultMap id="result" type="nu.mine.mosher.genealogy.IndexedPerson" autoMapping="true"/>
   <select id="select" parameterType="long" resultMap="result">
       SELECT
           Person.PersonGuid AS id,
