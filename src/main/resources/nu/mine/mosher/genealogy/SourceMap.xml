@@ -5,24 +5,29 @@
 
   <resultMap id="result" type="nu.mine.mosher.genealogy.EventSource" autoMapping="true"/>
   <select id="select" resultMap="result">
-      SELECT
-          Source.ID AS pkidCitation,
-          Source.PageNumber AS page,
-          Source.Comment AS comment,
-          Source.Footnote AS footnote,
-          Source.PID AS apid,
-          MasterSource.Author AS author,
-          MasterSource.Title AS title,
-          MasterSource.PublisherLocation AS placePub,
-          MasterSource.PublisherName AS pub,
-          MasterSource.PublishDate AS datePub,
-          MasterSource.CallNumber AS callno,
-          MasterSource.Comments AS source,
-          MasterSource.PID AS apidSource
-      FROM
-          Source LEFT OUTER JOIN
-          MasterSource ON MasterSource.ID = Source.MasterSourceID
-      WHERE
-          Source.ID = #{pkidCitation}
+    SELECT
+        0 AS pkidSourceLink,
+        null AS stars,
+        null AS just,
+        Source.ID AS pkidCitation,
+        Source.PageNumber AS page,
+        Source.Comment AS comment,
+        Source.Footnote AS footnote,
+        Source.PID AS apid,
+        MasterSource.Author AS author,
+        MasterSource.Title AS title,
+        MasterSource.PublisherLocation AS placePub,
+        MasterSource.PublisherName AS pub,
+        MasterSource.PublishDate AS datePub,
+        MasterSource.CallNumber AS callno,
+        MasterSource.Comments AS source,
+        MasterSource.PID AS apidSource,
+        null AS webLink,
+        null AS note
+    FROM
+        Source LEFT OUTER JOIN
+        MasterSource ON MasterSource.ID = Source.MasterSourceID
+    WHERE
+        Source.ID = #{pkidCitation}
   </select>
 </mapper>
