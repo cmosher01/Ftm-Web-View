@@ -1,5 +1,8 @@
 version: '3'
 
+volumes:
+  db:
+
 services:
   proxy:
     image: 'nginx'
@@ -19,3 +22,4 @@ services:
       FTM_AUTHOR: "John Doe"
     volumes:
       - './example:/srv:ro'
+      - 'db:/root'

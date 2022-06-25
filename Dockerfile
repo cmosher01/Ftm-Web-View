@@ -15,7 +15,6 @@ COPY build.gradle ./
 COPY src/ ./src/
 
 RUN ./gradlew -i build
-RUN ./gradlew dependencies --configuration=compileClasspath
 
 
 
@@ -28,3 +27,5 @@ WORKDIR $HOME
 COPY src/main/tomcat /usr/local/tomcat/conf
 
 COPY --from=build /root/build/libs/*.war /usr/local/tomcat/webapps/ROOT.war
+
+VOLUME /root

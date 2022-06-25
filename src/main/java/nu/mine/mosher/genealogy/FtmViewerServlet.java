@@ -33,6 +33,7 @@ import javax.xml.transform.TransformerException;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -48,7 +49,6 @@ import static nu.mine.mosher.genealogy.XmlUtils.*;
 /*
 TODO tasks
 TODO tags
-TODO "cite this source" on person page, source page
 TODO submitter/copyright
 TODO synch info (note: only in databases that have been sync'd)
 */
@@ -56,14 +56,9 @@ TODO synch info (note: only in databases that have been sync'd)
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
 
-    private static final boolean PUBLIC_ACCESS = (System.getenv("ftm_public_access") != null);
-
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
         LOG.trace("REQUEST HANDLING: BEGIN {}", "=".repeat(50));
-        if (PUBLIC_ACCESS) {
-            LOG.warn("PUBLIC ACCESS IS ALLOWED");
-        }
         try {
             LOG.trace("GET {}", request.getRequestURI());
             logRequestInfo(request);
@@ -74,7 +69,7 @@ public class FtmViewerServlet extends HttpServlet {
         LOG.trace("REQUEST HANDLING: END   {}", "=".repeat(50));
     }
 
-    private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException, JDOMException, SAXException, TikaException, URISyntaxException {
+    private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException, JDOMException, SAXException, TikaException, URISyntaxException, GeneralSecurityException {
         Optional<Document> dom = Optional.empty();
 
         if (request.getServletPath().equals("/")) {
@@ -133,7 +128,19 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException {
+    private static String cookie(final HttpServletRequest req, final String name) {
+        final Cookie[] cookies = req.getCookies();
+        if (Objects.isNull(cookies) || cookies.length == 0) {
+            return null;
+        }
+        final Optional<Cookie> optCookie = Arrays.stream(cookies).filter(c -> c.getName().equals(name)).findAny();
+        if (optCookie.isEmpty()) {
+            return null;
+        }
+        return optCookie.get().getValue();
+    }
+
+    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException, GeneralSecurityException {
         final var now = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
 
         final Optional<UUID> uuidPerson = getRequestedPersonUuid(request);
@@ -160,21 +167,27 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Optional<Integer> pkidCitation = getRequestedSourcePkid(request);
 
-        final Auth.RbacRole role = Auth.auth(request);
-        LOG.debug("Resulting role: {}", role);
+        final var optRbacSubject = new RbacAuthenticator(cookie(request, "idtoken")).authenticate();
+        final var authorizer = new RbacAuthorizer(optRbacSubject);
+        authorizer.register();
+
+        final var allPerms = authorizer.allPermissions();
+        final var sPerms = allPerms.stream().map(Enum::toString).collect(Collectors.joining(","));
+        LOG.info("Permissions granted user: {}", sPerms);
+        // TODO log request in database
 
 
 
         Optional<Document> dom = Optional.empty();
 
-        if (!PUBLIC_ACCESS && !role.authorized()) {
+        if (!authorizer.can(RbacPermission.PUBLIC)) {
             LOG.info("Unauthorized access blocked. Sending to home page.");
-            dom = Optional.of(pageIndexDatabases(role, now));
+            dom = Optional.of(pageIndexDatabases(authorizer, now));
         } else if (nameTree.isPresent() && uuidPerson.isPresent()) {
             if (indexedDatabase.isPresent()) {
                 final Optional<IndexedPerson> optFiltered = findPersonInTree(indexedDatabase.get(), IndexedPerson.from(uuidPerson.get()));
                 if (optFiltered.isPresent()) {
-                    dom = Optional.of(pagePerson(request, role, indexedDatabase.get(), optFiltered.get(), now));
+                    dom = Optional.of(pagePerson(request, authorizer, indexedDatabase.get(), optFiltered.get(), now));
                 } else {
                     final Optional<IndexedDatabase> indexedDatabaseOther = findPersonInAnyTree(IndexedPerson.from(uuidPerson.get()));
                     if (indexedDatabaseOther.isPresent()) {
@@ -193,10 +206,10 @@ public class FtmViewerServlet extends HttpServlet {
                 }
             }
         } else if (pkidCitation.isPresent() && indexedDatabase.isPresent()) {
-            dom = Optional.of(pageSource(request, role, indexedDatabase.get(), pkidCitation.get(), now));
+            dom = Optional.of(pageSource(request, authorizer, indexedDatabase.get(), pkidCitation.get(), now));
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                dom = Optional.of(pageIndexPeople(role, indexedDatabase.get(), now));
+                dom = Optional.of(pageIndexPeople(authorizer, indexedDatabase.get(), now));
             } else {
                 LOG.info("tree does not currently exist");
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -210,7 +223,7 @@ public class FtmViewerServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } else {
-            dom = Optional.of(pageIndexDatabases(role, now));
+            dom = Optional.of(pageIndexDatabases(authorizer, now));
         }
 
         return dom;
@@ -335,7 +348,7 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
-    private Document pageIndexDatabases(final Auth.RbacRole role, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageIndexDatabases(final RbacAuthorizer role, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final Document dom = XmlUtils.empty();
 
 
@@ -386,7 +399,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private Document pageIndexPeople(Auth.RbacRole role, final IndexedDatabase indexedDatabase, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageIndexPeople(RbacAuthorizer role, final IndexedDatabase indexedDatabase, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final List<IndexedPerson> list;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
@@ -436,14 +449,18 @@ public class FtmViewerServlet extends HttpServlet {
         final Element ul = e(section, "ul");
         Styles.add(ul, Styles.Layout.cn);
         for (final IndexedPerson indexedPerson : list) {
-            if (role.authorized() || (!indexedPerson.isRecent() && PUBLIC_ACCESS)) {
+            boolean can = false;
+            if (role.can(RbacPermission.LIST)) {
+                can = role.can(indexedPerson.isRecent() ? RbacPermission.PRIVATE : RbacPermission.PUBLIC);
+            }
+            if (can) {
                 final Element li = e(ul, "li");
                 Styles.add(li, Styles.Render.hanging);
 
                 final Element spDates = e(li, "span");
                 Styles.add(spDates, Styles.Render.smaller);
                 Styles.add(spDates, Styles.Render.dim);
-                spDates.setTextContent(indexedPerson.dates()+" ");
+                spDates.setTextContent(indexedPerson.dates() + " ");
 
                 final Element ap = e(li, "a");
                 ap.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
@@ -487,7 +504,7 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("defer", "defer");
     }
 
-    private void addAuthNav(final Auth.RbacRole role, final Element nav) {
+    private void addAuthNav(final RbacAuthorizer role, final Element nav) {
         Element e;
 
         // sign-in button
@@ -501,8 +518,8 @@ public class FtmViewerServlet extends HttpServlet {
 
         // signed-in user's email
         e = e(nav, "small");
-        e.setTextContent(role.loggedIn() ? role.email() : "guest");
-        Styles.add(e, role.authorized() ? Styles.Render.hiauth : Styles.Render.hiunauth);
+        e.setTextContent(role.display());
+        Styles.add(e, role.authenticated() ? Styles.Render.hiauth : Styles.Render.hiunauth);
 
         e = e(nav, "span");
         e.setTextContent(" ");
@@ -514,7 +531,7 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("id", "signout");
     }
 
-    private void fragNav(Auth.RbacRole role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException, URISyntaxException {
+    private void fragNav(RbacAuthorizer role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException, URISyntaxException {
         final Element header = e(parent, "header");
         final Element nav = e(header, "nav");
         Styles.add(nav, Styles.Layout.c2Wrap);
@@ -576,7 +593,7 @@ public class FtmViewerServlet extends HttpServlet {
         return sqlSessionFactory.openSession(connection);
     }
 
-    private Document pagePerson(final HttpServletRequest req, Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
+    private Document pagePerson(final HttpServletRequest req, RbacAuthorizer role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, IOException, TransformerException, URISyntaxException {
         final Person person = loadPersonDetails(indexedDatabase, indexedPerson);
         final Footnotes<EventSource> footnotes = new Footnotes<>();
 
@@ -605,17 +622,25 @@ public class FtmViewerServlet extends HttpServlet {
         final Element body = e(html, "body");
 
         fragNav(role, indexedDatabase, indexedPerson, body);
-        e(body, "hr");
-        fragPersonParents(indexedDatabase, indexedPerson, body);
+        if (role.can(RbacPermission.READ)) {
+            e(body, "hr");
+            fragPersonParents(indexedDatabase, indexedPerson, body);
+        }
         e(body, "hr");
         fragName(indexedDatabase, indexedPerson, person, body,  footnotes);
         e(body, "hr");
-        fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
-        fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
+        if (role.can(RbacPermission.READ)) {
+            fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
+            fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
+        } else {
+            fragNotice(body);
+        }
         e(body, "hr");
         fragCite(req, body, person, indexedDatabase, now);
-        e(body, "hr");
-        fragFootnotes(req, indexedDatabase, body, footnotes);
+        if (role.can(RbacPermission.READ)) {
+            e(body, "hr");
+            fragFootnotes(req, indexedDatabase, body, footnotes);
+        }
         e(body, "hr");
         fragFooter(Optional.of(person), body, now);
 
@@ -754,7 +779,7 @@ public class FtmViewerServlet extends HttpServlet {
         return s.toString();
     }
 
-    private void fragEvents(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
+    private void fragEvents(final RbacAuthorizer role, final IndexedDatabase indexedDatabase, final FtmLink link, final Element body, Footnotes<EventSource> footnotes) throws SQLException {
         final List<Event> events;
         final Map<Integer,EventWithSources> mapEventSources;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
@@ -782,8 +807,8 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private void fragEvent(final Auth.RbacRole role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) {
-        if (role.authorized() || (!event.isRecent() && PUBLIC_ACCESS)) {
+    private void fragEvent(final RbacAuthorizer role, final Footnotes<EventSource> footnotes, final Map<Integer, EventWithSources> mapEventSources, final Element tbody, final Event event) throws SQLException {
+        if (!event.isRecent() || role.can(RbacPermission.PRIVATE)) {
             final Element tr = e(tbody, "tr");
 
             final Element tdDate = e(tr, "td");
@@ -914,6 +939,11 @@ public class FtmViewerServlet extends HttpServlet {
         });
     }
 
+    private static void fragNotice(final Element body) {
+        final Element p = e(body, "p");
+        p.setTextContent("[You must sign in using your Google identity to view the details of this person.]");
+    }
+
     private static void fragFooter(final Optional<Person> person, final Element body, final ZonedDateTime now) {
         final Element footer = e(body, "footer");
 
@@ -1015,7 +1045,7 @@ public class FtmViewerServlet extends HttpServlet {
         return r;
     }
 
-    private void fragPersonPartnerships(final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body, Footnotes<EventSource> footnotes) throws SQLException, URISyntaxException {
+    private void fragPersonPartnerships(final RbacAuthorizer role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Element body, Footnotes<EventSource> footnotes) throws SQLException, URISyntaxException {
         final List<PersonPartnership> partnerships;
 
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
@@ -1032,7 +1062,7 @@ public class FtmViewerServlet extends HttpServlet {
         } else {
             LOG.debug("partnerships selected: {}", partnerships);
             for (final PersonPartnership partnership : partnerships) {
-                if (role.authorized() || (!partnership.isRecent() && PUBLIC_ACCESS)) {
+                if (!partnership.isRecent() || role.can(RbacPermission.PRIVATE)) {
                     UUID uuidLink = partnership.idPerson();
                     final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
                     if (optRefn.isPresent()) {
@@ -1130,7 +1160,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private Document pageSource(final HttpServletRequest req, final Auth.RbacRole role, final IndexedDatabase indexedDatabase, final int pkidCitation, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
+    private Document pageSource(final HttpServletRequest req, final RbacAuthorizer role, final IndexedDatabase indexedDatabase, final int pkidCitation, ZonedDateTime now) throws ParserConfigurationException, SQLException, JDOMException, SAXException, TikaException, TransformerException, IOException, URISyntaxException {
         final EventSource eventSource;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final SourceMap map = session.getMapper(SourceMap.class);

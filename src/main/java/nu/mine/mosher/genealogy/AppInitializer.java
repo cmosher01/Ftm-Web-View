@@ -1,5 +1,6 @@
 package nu.mine.mosher.genealogy;
 
+import liquibase.exception.LiquibaseException;
 import org.apache.ibatis.session.*;
 import org.slf4j.*;
 
@@ -16,11 +17,12 @@ public class AppInitializer {
         LOG.trace("AppInitializer static initialization of logging framework complete");
     }
 
-    private static final String CLASS_DRIVER_JDBC = "org.sqlite.JDBC";
+    public static final String CLASS_DRIVER_JDBC = "org.sqlite.JDBC";
 
     public static SqlSessionFactory init() {
         try {
             initJdbc();
+            new DatabaseHandler().liquibaseUpdate();
         } catch (final Throwable e) {
             throw new IllegalStateException("Error trying to load JDBC driver: "+CLASS_DRIVER_JDBC, e);
         }
@@ -85,15 +87,16 @@ public class AppInitializer {
     // example main running outside tomcat, for easy debugging
     public static void main(String[] args) throws SQLException {
         final SqlSessionFactory sqlSessionFactory = AppInitializer.init();
-        IndexedDatabase indexedDatabase = new IndexedDatabase(new File("example/mosher_other_REF.ftm"));
-        try (final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file()); final SqlSession session = sqlSessionFactory.openSession(conn)) {
-            FtmLink link = new FtmLink(FtmLinkTableID.Person, 238);
-            Map<Integer, EventWithSources> mapEventSources =
-                session.
-                getMapper(EventSourcesMap.class).
-                select(link).
-                stream().
-                collect(Collectors.toMap(e -> e.pkidFact, e -> e));
+
+//        IndexedDatabase indexedDatabase = new IndexedDatabase(new File("example/mosher_other_REF.ftm"));
+//        try (final Connection conn = DriverManager.getConnection("jdbc:sqlite:"+indexedDatabase.file()); final SqlSession session = sqlSessionFactory.openSession(conn)) {
+//            FtmLink link = new FtmLink(FtmLinkTableID.Person, 238);
+//            Map<Integer, EventWithSources> mapEventSources =
+//                session.
+//                getMapper(EventSourcesMap.class).
+//                select(link).
+//                stream().
+//                collect(Collectors.toMap(e -> e.pkidFact, e -> e));
 //            final var mapper = session.getMapper(PersonQuickMap.class);
 //            final var uuid = "5ed3b4f4-ddd4-4df1-854f-c351271c841d";
 //            final Long id = mapper.select(uuid);
@@ -106,6 +109,6 @@ public class AppInitializer {
 //            final var m1 = session.getMapper(PersonMap.class);
 //            final var indexedPerson = m1.select(id);
 //            LOG.info("indexed person: {}", indexedPerson.id());
-        }
+//        }
     }
 }

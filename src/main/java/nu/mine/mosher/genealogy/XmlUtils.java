@@ -201,12 +201,11 @@ public class XmlUtils {
     }
 
     private static String wrapTeiBibl(final String bibl) {
-        final String trimmed = bibl.replaceFirst("^(<bibl>)\\s+", "$1");
         return wrapTeiText(
             "<text>" +
             "<body>" +
             "<ab>" +
-            trimmed +
+            bibl +
             "</ab>" +
             "</body>" +
             "</text>");
