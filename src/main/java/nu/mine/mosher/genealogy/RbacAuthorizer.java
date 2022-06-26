@@ -54,7 +54,7 @@ public class RbacAuthorizer {
         if (this.subject.isEmpty()) {
             try (
                 final var connection = DatabaseHandler.connect();
-                final var statement = connection.prepareStatement("SELECT * FROM all_unauthenticated_permission_names")
+                final var statement = connection.prepareStatement("SELECT name FROM all_unauthenticated_permission_names")
             ) {
                 try (final var resultSet = statement.executeQuery()) {
                     addPermssions(resultSet, allowed);
@@ -63,7 +63,7 @@ public class RbacAuthorizer {
         } else {
             try (
                 final var connection = DatabaseHandler.connect();
-                final var statement = connection.prepareStatement("SELECT * FROM all_authenticated_permission_names WHERE email = ? or gid = ?")
+                final var statement = connection.prepareStatement("SELECT name FROM all_authenticated_permission_names WHERE email = ? or gid = ?")
             ) {
                 statement.setString(1, this.subject.get().email());
                 statement.setString(2, this.subject.get().gid());
