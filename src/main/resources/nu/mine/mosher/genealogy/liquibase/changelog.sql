@@ -103,7 +103,7 @@ CREATE TABLE user_defaults (
 --changeset users:9
 CREATE TABLE users (
     email TEXT PRIMARY KEY,
-    gid TEXT NOT NULL UNIQUE,
+    gid TEXT UNIQUE,
     role INTEGER REFERENCES roles
 );
 
