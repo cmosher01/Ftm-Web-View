@@ -75,6 +75,21 @@ public class RbacAuthorizer {
         return allowed;
     }
 
+    public int userID() throws SQLException {
+        if (this.subject.isPresent()) {
+            try (final var connection = DatabaseHandler.connect(); final var statement = connection.prepareStatement("SELECT id FROM users WHERE email = ? or gid = ?")) {
+                statement.setString(1, this.subject.get().email());
+                statement.setString(2, this.subject.get().gid());
+                try (final var resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getInt(1);
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
     public String display() {
         return this.subject.isPresent() ? this.subject.get().email() : "guest";
     }

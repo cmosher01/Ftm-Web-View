@@ -138,7 +138,7 @@ role_all_permission_names AS p ON (p.role = COALESCE(u.role,(SELECT role FROM us
 
 --changeset requests:12
 CREATE TABLE requests (
-    ts INTEGER PRIMARY KEY DEFAULT TIME,
+    ts TEXT PRIMARY KEY,
     ip TEXT,
     agent TEXT,
     uri TEXT,

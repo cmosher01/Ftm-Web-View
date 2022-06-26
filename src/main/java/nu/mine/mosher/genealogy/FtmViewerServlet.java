@@ -37,7 +37,6 @@ import java.security.GeneralSecurityException;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,22 +57,25 @@ public class FtmViewerServlet extends HttpServlet {
 
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
+        final var timestamp = Instant.now();
+
         LOG.trace("REQUEST HANDLING: BEGIN {}", "=".repeat(50));
+        LOG.info("request timestamp: {}", timestamp);
         try {
             LOG.trace("GET {}", request.getRequestURI());
             logRequestInfo(request);
-            tryGet(request, response);
+            tryGet(request, response, timestamp);
         } catch (final Throwable e) {
             LOG.error("uncaught exception in servlet", e);
         }
         LOG.trace("REQUEST HANDLING: END   {}", "=".repeat(50));
     }
 
-    private void tryGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException, ParserConfigurationException, TransformerException, SQLException, JDOMException, SAXException, TikaException, URISyntaxException, GeneralSecurityException {
+    private void tryGet(final HttpServletRequest request, final HttpServletResponse response, final Instant timestamp) throws IOException, ParserConfigurationException, TransformerException, SQLException, JDOMException, SAXException, TikaException, URISyntaxException, GeneralSecurityException {
         Optional<Document> dom = Optional.empty();
 
         if (request.getServletPath().equals("/")) {
-            dom = handleRequest(request, response);
+            dom = handleRequest(request, response, timestamp);
         } else {
             LOG.warn("Unexpected servlet path: {}", request.getServletPath());
             LOG.info("requested resource not found");
@@ -140,8 +142,8 @@ public class FtmViewerServlet extends HttpServlet {
         return optCookie.get().getValue();
     }
 
-    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException, GeneralSecurityException {
-        final var now = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+    private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response, final Instant timestamp) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException, GeneralSecurityException {
+        final var now = timestamp.atZone(ZoneOffset.UTC);
 
         final Optional<UUID> uuidPerson = getRequestedPersonUuid(request);
         if (uuidPerson.isPresent()) {
@@ -174,7 +176,26 @@ public class FtmViewerServlet extends HttpServlet {
         final var allPerms = authorizer.allPermissions();
         final var sPerms = allPerms.stream().map(Enum::toString).collect(Collectors.joining(","));
         LOG.info("Permissions granted user: {}", sPerms);
-        // TODO log request in database
+
+
+
+
+        // log request in database
+        var ip = "";
+        var agent = "";
+        var uri = "";
+        final Enumeration<String> e = request.getHeaderNames();
+        while (e.hasMoreElements()) {
+            final String header = e.nextElement();
+            if (header.equalsIgnoreCase("X-Real-IP")) {
+                ip = request.getHeader(header);
+            } else if (header.equalsIgnoreCase("User-Agent")) {
+                agent = request.getHeader(header);
+            } else if (header.equalsIgnoreCase("Nginx-Request-URI")) {
+                uri = request.getHeader(header);
+            }
+        }
+        DatabaseHandler.logRequest(timestamp, ip, agent, uri, uuidPerson, indexedDatabase, authorizer.userID());
 
 
 
