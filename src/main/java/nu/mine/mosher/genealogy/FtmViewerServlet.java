@@ -170,8 +170,7 @@ public class FtmViewerServlet extends HttpServlet {
         final Optional<Integer> pkidCitation = getRequestedSourcePkid(request);
 
         final var optRbacSubject = new RbacAuthenticator(cookie(request, "idtoken")).authenticate();
-        final var authorizer = new RbacAuthorizer(optRbacSubject);
-        authorizer.register();
+        final var authorizer = new RbacAuthorizer(optRbacSubject, now);
 
         final var allPerms = authorizer.allPermissions();
         final var sPerms = allPerms.stream().map(Enum::toString).collect(Collectors.joining(","));

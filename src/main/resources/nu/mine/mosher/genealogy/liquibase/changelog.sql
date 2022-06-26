@@ -1,42 +1,5 @@
 --liquibase formatted sql
 
-/*
-permissions (hierarchical enum)
-
-PUBLIC
-PRIVATE (implies PUBLIC)
-LIST (implies PUBLIC)
-READ (implies LIST)
-
-roles (have zero or more permissions)
-
-UNAUTHORIZED --> [no permissions]
-GUEST --> LIST
-UNTRUSTED --> READ
-TRUSTED --> READ, PRIVATE
-
-default_uesrs
-
-<default role for unauthenticated users>: GUEST
-<default role for authenticated users (if users.role is NULL)>: UNTRUSTED
-
-
-
-VALID = request has valid authenticated identifier (google email from "idtoken" JWT in header)
-
-if VALID and user does not exist in user table
-    insert user into user table
-endif
-
-if VALID
-    role = read user's default role from database
-        or <default role if users.role is NULL>
-else
-    role = <default role for unauthenticated users>
-endif
-*/
-
-
 --changeset permissions:1
 CREATE TABLE permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,19 +65,19 @@ CREATE TABLE user_defaults (
 
 --changeset users:9
 CREATE TABLE users (
-    email TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     gid TEXT UNIQUE,
     role INTEGER REFERENCES roles
 );
 
--- If user is authenticated, then a NULL users.role indicates to use:
---     user_defaults.role WHERE name = 'AUTHENTICATED'
--- To change this (e.g., to grant a user more access):
---     UPDATE users SET role = (SELECT id FROM roles WHERE name = 'TRUSTED') WHERE email = 'xxx';
--- To ban a user:
---     UPDATE users SET role = (SELECT id FROM roles WHERE name = 'UNAUTHORIZED') WHERE email = 'xxx';
+--changeset emails:10
+CREATE TABLE emails (
+    email TEXT PRIMARY KEY,
+    created TEXT,
+    user INTEGER REFERENCES users
+)
 
---changeset all_unauthenticated_permission_names:10
+--changeset all_unauthenticated_permission_names:11
 CREATE VIEW all_unauthenticated_permission_names AS
 SELECT name
 FROM
@@ -122,21 +85,15 @@ user_defaults AS u JOIN
 role_all_permission_names AS n ON (n.role = u.role)
 WHERE
 u.type = 'UNAUTHENTICATED';
---select * from all_unauthenticated_permission_names
 
---insert into users values ('cmosher','abc',4)
---insert into users values ('other','xyz',NULL)
---select * from users
-
---changeset all_authenticated_permission_names:11
+--changeset all_authenticated_permission_names:12
 CREATE VIEW all_authenticated_permission_names AS
-SELECT email, gid, p.name
+SELECT u.id AS user, p.name
 FROM
 users AS u LEFT OUTER JOIN
 role_all_permission_names AS p ON (p.role = COALESCE(u.role,(SELECT role FROM user_defaults WHERE type = 'AUTHENTICATED')));
---select * from all_authenticated_permission_names
 
---changeset requests:12
+--changeset requests:13
 CREATE TABLE requests (
     ts TEXT PRIMARY KEY,
     ip TEXT,
@@ -150,7 +107,8 @@ CREATE TABLE requests (
 
 
 
---changeset foundational_data:11
+
+--changeset foundational_data:14
 
 -- these are enums in the application and their meaning is hardcoded into the application
 INSERT INTO permissions (name) VALUES ('PUBLIC');  -- 1
