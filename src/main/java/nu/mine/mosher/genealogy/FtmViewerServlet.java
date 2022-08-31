@@ -1174,8 +1174,6 @@ public class FtmViewerServlet extends HttpServlet {
                     final Element gc = e(td, "sup");
                     gc.setTextContent("\u2443".repeat((child.grandchildren() + 2) / 3));
                 }
-
-                // TODO child birth dates
             }
         }
     }

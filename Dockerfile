@@ -1,4 +1,4 @@
-FROM amazoncorretto:17 AS build
+FROM eclipse-temurin:jdk-17-jammy AS build
 
 MAINTAINER Christopher A. Mosher <cmosher01@gmail.com>
 
@@ -18,7 +18,7 @@ RUN ./gradlew -i build
 
 
 
-FROM tomcat:jdk17-corretto AS run
+FROM tomcat:jdk17-temurin AS run
 
 USER root
 ENV HOME /root
