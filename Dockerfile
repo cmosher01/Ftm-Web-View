@@ -1,4 +1,4 @@
-FROM eclipse-temurin:jdk-17-jammy AS build
+FROM eclipse-temurin:17-jdk-jammy AS build
 
 MAINTAINER Christopher A. Mosher <cmosher01@gmail.com>
 
@@ -18,7 +18,7 @@ RUN ./gradlew -i build
 
 
 
-FROM tomcat:jdk17-temurin AS run
+FROM tomcat:jdk17-temurin-jammy AS run
 
 USER root
 ENV HOME /root
