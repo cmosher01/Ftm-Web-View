@@ -1,8 +1,8 @@
 ---
 on:
-  release:
-    types:
-      - created
+  push:
+    branches:
+      - '*'
 
 jobs:
   publish:
