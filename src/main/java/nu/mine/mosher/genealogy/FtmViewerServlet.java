@@ -527,46 +527,41 @@ public class FtmViewerServlet extends HttpServlet {
     private void addAuthNav(final RbacAuthorizer role, final Element nav) {
         Element e;
 
-        // sign-in button
-        e = e(nav, "div");
-        e.setAttribute("id", "g_id_onload");
-        e.setAttribute("data-client_id", System.getenv("CLIENT_ID"));
-        e.setAttribute("data-callback", "onSignIn");
-        e.setAttribute("data-context", "signin");
-        e.setAttribute("data-ux_mode", "popup");
-        e.setAttribute("data-auto_prompt", "true");
-        e.setAttribute("data-auto_select", "true");
-        e.setAttribute("data-itp_support", "true");
+        if (!role.authenticated()) {
+            // sign-in button
+            e = e(nav, "div");
+            e.setAttribute("id", "g_id_onload");
+            e.setAttribute("data-client_id", System.getenv("CLIENT_ID"));
+            e.setAttribute("data-callback", "onSignIn");
+            e.setAttribute("data-context", "signin");
+            e.setAttribute("data-ux_mode", "popup");
+            e.setAttribute("data-auto_prompt", "true");
+            e.setAttribute("data-auto_select", "true");
+            e.setAttribute("data-itp_support", "true");
 
-        e = e(nav, "div");
-        e.setAttribute("class", "g_id_signin");
-        e.setAttribute("data-type", "standard");
-        e.setAttribute("data-shape", "rectangular");
-        e.setAttribute("data-theme", "outline");
-        e.setAttribute("data-text", "signin_with");
-        e.setAttribute("data-size", "large");
-        e.setAttribute("data-logo_alignment", "left");
+            e = e(nav, "div");
+            e.setAttribute("class", "g_id_signin");
+            e.setAttribute("data-type", "standard");
+            e.setAttribute("data-shape", "rectangular");
+            e.setAttribute("data-theme", "outline");
+            e.setAttribute("data-text", "signin_with");
+            e.setAttribute("data-size", "large");
+            e.setAttribute("data-logo_alignment", "left");
+        } else {
+            // signed-in user's email
+            e = e(nav, "small");
+            e.setTextContent(role.display());
+            Styles.add(e, Styles.Render.hiauth);
 
+            e = e(nav, "span");
+            e.setTextContent(" ");
 
-
-        e = e(nav, "span");
-        e.setTextContent(" ");
-
-
-
-        // signed-in user's email
-        e = e(nav, "small");
-        e.setTextContent(role.display());
-        Styles.add(e, role.authenticated() ? Styles.Render.hiauth : Styles.Render.hiunauth);
-
-        e = e(nav, "span");
-        e.setTextContent(" ");
-
-        // sign-out button
-        e = e(nav, "a");
-        Styles.add(e, Styles.Links.button);
-        e.setTextContent("Sign\u00A0out");
-        e.setAttribute("id", "signout");
+            // sign-out button
+            e = e(nav, "a");
+            Styles.add(e, Styles.Links.button);
+            e.setTextContent("Sign\u00A0out");
+            e.setAttribute("id", "signout");
+        }
     }
 
     private void fragNav(RbacAuthorizer role, final IndexedDatabase indexedDatabase, IndexedPerson indexedPerson, final Element parent) throws SQLException, URISyntaxException {
