@@ -497,15 +497,12 @@ public class FtmViewerServlet extends HttpServlet {
 
     private void addAuthHead(final Element head) {
         Element e;
-        e = e(head, "meta");
-        e.setAttribute("name", "google-signin-client_id");
-        e.setAttribute("content", System.getenv("CLIENT_ID"));
 
         e = e(head, "script");
-        e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js");
+        e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/src/js.cookie.min.js");
 
         e = e(head, "script");
-        e.setAttribute("src", "https://apis.google.com/js/platform.js?onload=renderButton");
+        e.setAttribute("src", "https://accounts.google.com/gsi/client");
         e.setAttribute("async", "async");
 
         e = e(head, "script");
@@ -531,13 +528,21 @@ public class FtmViewerServlet extends HttpServlet {
         Element e;
 
         // sign-in button
-        e = e(nav, "a");
-        e.setAttribute("id", "ftm-web-view-google-signin");
-        Styles.add(e, "g-signin2");
-        Styles.add(e, Styles.Links.button);
+        e = e(nav, "div");
+        e.setAttribute("id", "g_id_onload");
+        e.setAttribute("data-client_id", System.getenv("CLIENT_ID"));
+        e.setAttribute("data-callback", "onSignIn");
+
+        e = e(nav, "div");
+        e.setAttribute("class", "g_id_signin");
+        e.setAttribute("data-type", "standard");
+
+
 
         e = e(nav, "span");
         e.setTextContent(" ");
+
+
 
         // signed-in user's email
         e = e(nav, "small");
