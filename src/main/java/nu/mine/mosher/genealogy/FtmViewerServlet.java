@@ -532,10 +532,18 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("id", "g_id_onload");
         e.setAttribute("data-client_id", System.getenv("CLIENT_ID"));
         e.setAttribute("data-callback", "onSignIn");
+        e.setAttribute("data-context", "signin");
+        e.setAttribute("data-ux_mode", "popup");
+        e.setAttribute("data-auto_prompt", "false");
 
         e = e(nav, "div");
         e.setAttribute("class", "g_id_signin");
         e.setAttribute("data-type", "standard");
+        e.setAttribute("data-shape", "rectangular");
+        e.setAttribute("data-theme", "outline");
+        e.setAttribute("data-text", "signin_with");
+        e.setAttribute("data-size", "medium");
+        e.setAttribute("data-logo_alignment", "right");
 
 
 
