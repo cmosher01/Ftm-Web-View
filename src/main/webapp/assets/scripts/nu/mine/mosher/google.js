@@ -25,6 +25,12 @@ function renderButton() {
     );
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function ready() {
     document.getElementById('signout').addEventListener('click', signOut);
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ready);
+} else {
+    ready();
+}
