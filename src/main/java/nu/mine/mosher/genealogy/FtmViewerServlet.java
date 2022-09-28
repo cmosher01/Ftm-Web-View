@@ -540,13 +540,12 @@ public class FtmViewerServlet extends HttpServlet {
             e.setAttribute("data-itp_support", "true");
 
             e = e(nav, "div");
-            e.setAttribute("class", "g_id_signin");
-            e.setAttribute("data-type", "standard");
-            e.setAttribute("data-shape", "rectangular");
+            e.setAttribute("class", "g_id_signin layout-right");
+            e.setAttribute("data-type", "icon");
+            e.setAttribute("data-shape", "circle");
             e.setAttribute("data-theme", "outline");
             e.setAttribute("data-text", "signin_with");
             e.setAttribute("data-size", "large");
-            e.setAttribute("data-logo_alignment", "left");
         } else {
             // signed-in user's email
             e = e(nav, "small");

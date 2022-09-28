@@ -23,3 +23,7 @@
 .layout-indent {
     margin-left: 2em;
 }
+
+.layout-right {
+    float: right;
+}
