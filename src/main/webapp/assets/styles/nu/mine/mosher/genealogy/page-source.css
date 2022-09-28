@@ -1,5 +1,5 @@
 @import url("global.css");
-@import url("../assets/styles/nu/mine/mosher/xml/tei.css");
+@import url("../xml/tei.css");
 
 table, td, th {
     border: 1px dotted var(--sol-base1);

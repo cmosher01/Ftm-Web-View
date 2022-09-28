@@ -3,13 +3,16 @@ plugins {
     id 'war'
 }
 
-version = '1.2.1'
+version = '1.2.2'
 
 group = 'nu.mine.mosher.genealogy'
 
 repositories {
     mavenCentral()
     google()
+    maven {
+        url = uri('https://public:\u0067hp_fya6Kseu3XOBMg2icbg7f1LP6ZFYjj35v4Zj@maven.pkg.github.com/cmosher01/*')
+    }
 }
 
 java {

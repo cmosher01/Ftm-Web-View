@@ -385,7 +385,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/page-dbs.css");
+        css.setAttribute("href", "./assets/styles/nu/mine/mosher/genealogy/page-dbs.css");
 
         addAuthHead(head);
 
@@ -447,7 +447,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/page-people.css");
+        css.setAttribute("href", "./assets/styles/nu/mine/mosher/genealogy/page-people.css");
 
         addAuthHead(head);
 
@@ -500,28 +500,31 @@ public class FtmViewerServlet extends HttpServlet {
         e = e(head, "meta");
         e.setAttribute("name", "google-signin-client_id");
         e.setAttribute("content", System.getenv("CLIENT_ID"));
+
         e = e(head, "script");
         e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js");
+
         e = e(head, "script");
         e.setAttribute("src", "https://apis.google.com/js/platform.js?onload=renderButton");
         e.setAttribute("async", "async");
-        e.setAttribute("defer", "defer");
+
         e = e(head, "script");
-        e.setAttribute("src", "./js/google.js");
+        e.setAttribute("src", "./assets/scripts/nu/mine/mosher/google.js");
+        e.setAttribute("async", "async");
     }
 
     private void addNoMenuHead(final Element head) {
         Element e;
         e = e(head, "script");
-        e.setAttribute("src", "./js/nomenu.js");
-        e.setAttribute("defer", "defer");
+        e.setAttribute("src", "./assets/scripts/nu/mine/mosher/nomenu.js");
+        e.setAttribute("async", "async");
     }
 
     private void addCopyCitationHead(final Element head) {
         Element e;
         e = e(head, "script");
-        e.setAttribute("src", "./js/citation.js");
-        e.setAttribute("defer", "defer");
+        e.setAttribute("src", "./assets/scripts/nu/mine/mosher/citation.js");
+        e.setAttribute("async", "async");
     }
 
     private void addAuthNav(final RbacAuthorizer role, final Element nav) {
@@ -633,7 +636,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css = e(head, "link");
         css.setAttribute("rel", "stylesheet");
-        css.setAttribute("href", "./css/page-person.css");
+        css.setAttribute("href", "./assets/styles/nu/mine/mosher/genealogy/page-person.css");
 
         addAuthHead(head);
         addNoMenuHead(head);
@@ -675,14 +678,15 @@ public class FtmViewerServlet extends HttpServlet {
 
 
         final var button = e(div, "button");
-        button.setAttribute("id", "urn:uuid:52595c4e-d8ca-45e8-af3f-396e068adc46");
+        button.setAttribute("class", "tei-button-copy");
+        button.setAttribute("data-html-for", "urn:uuid:032a6ed6-40da-4687-85ab-44b25739e275");
         t(button, "Copy source citation");
         t(div, " ");
 
 
 
         final var citation = e(div, "div");
-        citation.setAttribute("id", "urn:uuid:a1a126ed-46fb-4f6c-a6a0-b58698f696ba");
+        citation.setAttribute("id", "urn:uuid:032a6ed6-40da-4687-85ab-44b25739e275");
         citation.setAttribute("class", Styles.Render.smaller +" tei-inline");
 
         final var optAuthor = Optional.ofNullable(System.getenv("FTM_AUTHOR"));
@@ -1199,7 +1203,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element css2 = e(head, "link");
         css2.setAttribute("rel", "stylesheet");
-        css2.setAttribute("href", "./css/page-source.css");
+        css2.setAttribute("href", "./assets/styles/nu/mine/mosher/genealogy/page-source.css");
 
         addAuthHead(head);
         addNoMenuHead(head);

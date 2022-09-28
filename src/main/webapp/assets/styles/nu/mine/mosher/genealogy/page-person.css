@@ -1,5 +1,5 @@
 @import url("global.css");
-@import url("../assets/styles/nu/mine/mosher/xml/tei.css");
+@import url("../xml/tei.css");
 
 /*
     Override block as inline, because we only use TEI in
