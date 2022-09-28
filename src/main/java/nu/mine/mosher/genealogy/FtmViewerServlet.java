@@ -499,7 +499,7 @@ public class FtmViewerServlet extends HttpServlet {
         Element e;
 
         e = e(head, "script");
-        e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/src/js.cookie.min.js");
+        e.setAttribute("src", "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js");
 
         e = e(head, "script");
         e.setAttribute("src", "https://accounts.google.com/gsi/client");
@@ -534,7 +534,9 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("data-callback", "onSignIn");
         e.setAttribute("data-context", "signin");
         e.setAttribute("data-ux_mode", "popup");
-        e.setAttribute("data-auto_prompt", "false");
+        e.setAttribute("data-auto_prompt", "true");
+        e.setAttribute("data-auto_select", "true");
+        e.setAttribute("data-itp_support", "true");
 
         e = e(nav, "div");
         e.setAttribute("class", "g_id_signin");
@@ -542,8 +544,8 @@ public class FtmViewerServlet extends HttpServlet {
         e.setAttribute("data-shape", "rectangular");
         e.setAttribute("data-theme", "outline");
         e.setAttribute("data-text", "signin_with");
-        e.setAttribute("data-size", "medium");
-        e.setAttribute("data-logo_alignment", "right");
+        e.setAttribute("data-size", "large");
+        e.setAttribute("data-logo_alignment", "left");
 
 
 
