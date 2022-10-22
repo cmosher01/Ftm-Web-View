@@ -2,10 +2,10 @@
 on:
   push:
     branches:
-      - '*'
+      - "*"
 
 jobs:
-  publish:
+  "publish":
     runs-on: "ubuntu-latest"
 
     permissions:
