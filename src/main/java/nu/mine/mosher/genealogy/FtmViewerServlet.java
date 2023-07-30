@@ -1024,6 +1024,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Element section = e(body, "section");
         final Element table = e(section, "table");
+        Styles.add(table, Styles.Layout.wide);
         final Element tbody = e(table, "tbody");
         if (parents.isEmpty()) {
             final Element tr = e(tbody, "tr");

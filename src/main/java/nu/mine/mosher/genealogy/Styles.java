@@ -39,7 +39,8 @@ public final class Styles {
         c2Wrap("c2-wrap"),
         c2Left("c2-left"),
         c2Right("c2-right"),
-        indent("layout-indent");
+        indent("layout-indent"),
+        wide("layout-wide");
 
         private final String cssClass;
 

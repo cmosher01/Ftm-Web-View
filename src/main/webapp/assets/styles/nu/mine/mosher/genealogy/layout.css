@@ -27,3 +27,7 @@
 .layout-right {
     float: right;
 }
+
+.layout-wide {
+    width: 100%;
+}
