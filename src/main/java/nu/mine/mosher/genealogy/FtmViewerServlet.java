@@ -860,6 +860,7 @@ public class FtmViewerServlet extends HttpServlet {
 
             final Element tdDescription = e(tr, "td");
             final Element spanType = e(tdDescription, "span");
+            // TODO for "marr" event with description (e.g., "Marriage: partnership"), can we make it just "partnership"?
             ifPresent(event.type(), spanType);
             Styles.add(spanType, getEventHighlight(event));
             if (Objects.nonNull(event.description()) && !event.description().isBlank()) {
@@ -872,6 +873,7 @@ public class FtmViewerServlet extends HttpServlet {
                     a.setAttribute("href", optionalWorldTreeID.get().urlFor(event.description()).get().toExternalForm());
                     a.setTextContent(event.description());
                 } else {
+                    // TODO if event description is just a url, make it a link, or can we make it a citation?
                     spanDesc.setTextContent(event.description());
                 }
             }
