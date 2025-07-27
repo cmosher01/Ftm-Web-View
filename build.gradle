@@ -18,6 +18,7 @@ repositories {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of 17
+        vendor = JvmVendorSpec.ADOPTIUM
     }
 }
 
@@ -58,6 +59,6 @@ dependencies {
 
 
 
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: 'latest.release'
-    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: 'latest.release'
+    testRuntimeOnly group: 'org.junit.platform', name: 'junit-platform-launcher'
 }
