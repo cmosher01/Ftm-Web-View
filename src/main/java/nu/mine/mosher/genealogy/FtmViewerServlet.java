@@ -213,6 +213,7 @@ public class FtmViewerServlet extends HttpServlet {
                     if (indexedDatabaseOther.isPresent()) {
                         redirectToTreePerson(indexedDatabaseOther.get(), IndexedPerson.from(uuidPerson.get()), response);
                     } else {
+                        LOG.info("person not currently found in given tree, or any other tree");
                         redirectToTree(indexedDatabase.get(), response);
                     }
                 }
@@ -318,7 +319,7 @@ public class FtmViewerServlet extends HttpServlet {
                     LOG.warn("Could not re-locate Person.ID: {}", idPerson);
                 }
             } else {
-                LOG.info("Did not find any Person associated with UUID: {}", indexedPerson.preferRefn());
+                LOG.debug("Did not find any Person associated with UUID: {}", indexedPerson.preferRefn());
                 optFiltered = Optional.empty();
             }
         }
