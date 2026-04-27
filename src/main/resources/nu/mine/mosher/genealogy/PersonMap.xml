@@ -33,7 +33,12 @@
                   Death.FactTypeID IN (
                     SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
                   )
-          ) AS dateDeath
+          ) AS dateDeath,
+          NULL AS xy,
+          NULL AS gedcomname,
+          NULL AS sex,
+          NULL AS birthplace,
+          NULL AS anyplace
       FROM
           Person LEFT OUTER JOIN
           Fact AS Refn ON (

@@ -11,7 +11,7 @@ public class StringUtils {
         if (Objects.isNull(s) || s.isBlank()) {
             return "";
         }
-        return s.trim();
+        return s.strip();
     }
 
     public static String safe(final Object object) {

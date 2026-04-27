@@ -59,6 +59,10 @@ public class Place {
         return new ArrayList<>(this.hierarchy);
     }
 
+    public String description() {
+        return this.description;
+    }
+
     public static Place fromFtmPlace(final String s) {
         final Place place = new Builder(s).build();
         LOG.debug("FtmPlace=\"{}\" --> \"{}\"", s, place);

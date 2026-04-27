@@ -1,40 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="nu.mine.mosher.genealogy.PersonIndexMap">
-  <resultMap id="result" type="nu.mine.mosher.genealogy.IndexedPerson" autoMapping="true"/>
-  <select id="select" resultMap="result">
-      SELECT
-          Person.PersonGuid AS id,
-          Refn.Text AS refn,
-          Person.FullNameReversed AS name,
-          Person.ID AS pkid,
-          Birth.Date AS dateBirth,
-          Death.Date AS dateDeath
-      FROM
-          Person LEFT OUTER JOIN
-          Fact AS Refn ON (
-              Refn.LinkTableID = 5 AND
-              Refn.LinkID = Person.ID AND
-              Refn.Preferred > 0 AND
-              Refn.FactTypeID IN (
-                SELECT ID FROM FactType WHERE FactType.Abbreviation = '_ID' LIMIT 1
-              )
-          ) LEFT OUTER JOIN
-          Fact AS Birth ON (
-              Birth.LinkTableID = 5 AND
-              Birth.LinkID = Person.ID AND
-              Birth.Preferred > 0 AND
-              Birth.FactTypeID IN (
-                  SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
-              )
-          ) LEFT OUTER JOIN
-          Fact AS Death ON (
-              Death.LinkTableID = 5 AND
-              Death.LinkID = Person.ID AND
-              Death.Preferred > 0 AND
-              Death.FactTypeID IN (
-                  SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
-              )
-          )
-  </select>
+    <resultMap id="result" type="nu.mine.mosher.genealogy.IndexedPerson" autoMapping="true"/>
+    <select id="select" resultMap="result">
+        SELECT
+            Person.PersonGuid AS id,
+            Refn.Text AS refn,
+            Person.FullNameReversed AS name,
+            Person.ID AS pkid,
+            Birth.Date AS dateBirth,
+            Death.Date AS dateDeath,
+            (
+                SELECT F.Text FROM Fact F WHERE F.LinkTableID = 5 AND F.LinkID = Person.ID AND F.Preferred = 1 AND
+                F.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Abbreviation = '_XY')
+                LIMIT 1
+            ) xy,
+            (
+                SELECT F.Text FROM Fact F WHERE F.LinkTableID = 5 AND F.LinkID = Person.ID AND F.Preferred = 1 AND
+                F.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Name = 'Name')
+                LIMIT 1
+            ) gedcomname,
+            (
+                SELECT F.Text FROM Fact F WHERE F.LinkTableID = 5 AND F.LinkID = Person.ID AND F.Preferred = 1 AND
+                F.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Name = 'Sex')
+                LIMIT 1
+            ) sex,
+            (
+                SELECT P.Name FROM Fact F INNER JOIN Place P ON (P.ID = F.PlaceID)
+                WHERE F.LinkTableID = 5 AND F.LinkID = Person.ID AND F.Preferred = 1 AND
+                F.FactTypeID IN (SELECT ID FROM FactType WHERE FactType.Name = 'Birth')
+                LIMIT 1
+            ) birthplace,
+            (
+                SELECT Name FROM (
+                SELECT F.Date, P.Name FROM Fact F INNER JOIN Place P ON (P.ID = F.PlaceID)
+                WHERE F.LinkTableID = 5 AND F.LinkID = Person.ID AND F.Date IS NOT NULL UNION
+                SELECT F.Date, P.Name FROM Relationship R INNER JOIN Fact F ON (F.LinkID = R.ID AND F.LinkTableID = 7) INNER JOIN Place P ON (P.ID = F.PlaceID)
+                WHERE (R.Person1ID = Person.ID OR R.Person2ID = Person.ID) AND F.Date IS NOT NULL ORDER BY Date LIMIT 1)
+            ) anyplace
+        FROM
+            Person LEFT OUTER JOIN
+            Fact AS Refn ON (
+                Refn.LinkTableID = 5 AND
+                Refn.LinkID = Person.ID AND
+                Refn.Preferred > 0 AND
+                Refn.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Abbreviation = '_ID' LIMIT 1
+                )
+            ) LEFT OUTER JOIN
+            Fact AS Birth ON (
+                Birth.LinkTableID = 5 AND
+                Birth.LinkID = Person.ID AND
+                Birth.Preferred > 0 AND
+                Birth.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Name = 'Birth' LIMIT 1
+                )
+            ) LEFT OUTER JOIN
+            Fact AS Death ON (
+                Death.LinkTableID = 5 AND
+                Death.LinkID = Person.ID AND
+                Death.Preferred > 0 AND
+                Death.FactTypeID IN (
+                    SELECT ID FROM FactType WHERE FactType.Name = 'Death' LIMIT 1
+                )
+            )
+    </select>
 </mapper>

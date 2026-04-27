@@ -128,6 +128,27 @@ public class Day implements Comparable<Day> {
         return String.format("%04d",(this.earliest.ld.getYear()+this.latest.ld.getYear())/2);
     }
 
+    public String simplisticNoFiller() {
+        if (!this.other.isBlank()) {
+            return "?";
+        }
+        if (this.earliest.equals(this.latest)) {
+            if (this.earliest.unknown || this.earliest.noYear) {
+                return "?";
+            }
+            return String.format("%04d",this.earliest.ld.getYear());
+        }
+
+        if (this.earliest.unknown || this.earliest.noYear) {
+            return String.format("%04d",this.latest.ld.getYear());
+        }
+
+        if (this.latest.unknown || this.latest.noYear) {
+            return String.format("%04d",this.earliest.ld.getYear());
+        }
+
+        return String.format("c. %04d",(this.earliest.ld.getYear()+this.latest.ld.getYear())/2);
+    }
 
     private static class FlaggedDate implements Comparable<FlaggedDate> {
         private final long flags;
@@ -240,8 +261,14 @@ public class Day implements Comparable<Day> {
         // TODO parameterize years for recency?
         // TODO implement privatization based on database columns in tables:
         // Person, Relationship, ChildRelationship, Fact, Note, MediaLink, MediaFile
+        //
+        // number-line examples:
+        //   recent date:
+        //     <------------------- 110 years ago ---- now ----- this date ---->
+        //   old date:
+        //     <---- this date ---- 110 years ago ---- now -------------------->
         public boolean isRecent() {
-            return  !this.unknown && LocalDate.now().minusYears(110).compareTo(this.ld) < 0;
+            return  !this.unknown && LocalDate.now().minusYears(110).isBefore(this.ld);
         }
     }
 }

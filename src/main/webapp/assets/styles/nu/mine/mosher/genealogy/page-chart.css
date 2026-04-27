@@ -1,0 +1,28 @@
+@import url("global.css");
+
+svg {
+    background-color: var(--sol-base1);
+}
+
+rect, line {
+    stroke: var(--sol-base02);
+}
+
+rect {
+    fill: var(--sol-base2);
+}
+
+.person {
+    font-family: 'Noto Sans';
+    font-size: 6pt; /* Need to use 6pt in order to display as 8pt... firefox, safari, chrome... WHY? */
+    text-anchor: middle;
+}
+
+.nameGiven {
+    font-weight: bold;
+}
+
+.date, .tagline {
+    fill: var(--sol-base01);
+    font-size: 4.5pt;
+}

@@ -7,7 +7,7 @@ a {
     text-decoration: unset;
     color: unset;
     border-width: 1px;
-    margin: -1px;
+    /* margin: -1px; this makes Firefox columns too narrow, causing wrapping */
     border-style: solid;
     border-radius: 0.2em;
     border-color: transparent;
@@ -23,7 +23,7 @@ a:hover {
     text-decoration: unset;
     color: var(--sol-violet);
     border-width: 1px;
-    margin: -1px;
+    /* margin: -1px; this makes Firefox columns too narrow, causing wrapping */
     border-style: solid;
     border-radius: 0.2em;
     border-color: transparent;

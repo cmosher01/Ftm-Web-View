@@ -1,4 +1,5 @@
-version: '3'
+# This Docker Compose file is for local testing during development only.
+# The Dockerfile, however, is the production image.
 
 volumes:
   db:
@@ -22,4 +23,11 @@ services:
       FTM_AUTHOR: "John Doe"
     volumes:
       - './example:/srv:ro'
+      - 'db:/root'
+
+  sqlite:
+    image: 'ttimbers/ubuntu-sqlite3'
+    platform: 'linux/amd64'
+    command: 'bash -c "sleep 7d"'
+    volumes:
       - 'db:/root'

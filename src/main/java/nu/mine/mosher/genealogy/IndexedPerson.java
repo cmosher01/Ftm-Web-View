@@ -1,21 +1,37 @@
 package nu.mine.mosher.genealogy;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.*;
 
 
-public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateBirth, Day dateDeath) implements Comparable<IndexedPerson> {
+public record IndexedPerson(
+    UUID id,
+    Refn refn,
+    String name,
+    int pkid,
+    Day dateBirth,
+    Day dateDeath,
+    String xy,
+    String gedcomname,
+    String sex,
+    Place birthplace,
+    Place anyplace
+) implements Comparable<IndexedPerson> {
+    @NonNull
     public static IndexedPerson from(final UUID uuidPerson) {
-        return new IndexedPerson(uuidPerson, new Refn(uuidPerson), null, 0, Day.UNKNOWN, Day.UNKNOWN);
+        return new IndexedPerson(uuidPerson, new Refn(uuidPerson),
+        null, 0, Day.UNKNOWN, Day.UNKNOWN, null, null, null, null, null);
     }
 
     @Override
     // not consistent with equals
-    public int compareTo(final IndexedPerson that) {
+    public int compareTo(@NonNull final IndexedPerson that) {
         return Comparator.
-             comparing(IndexedPerson::name, String::compareToIgnoreCase).
-             thenComparing(IndexedPerson::dateBirth).
-             thenComparing(IndexedPerson::dateDeath).
-             compare(this, that);
+            comparing(IndexedPerson::name, String::compareToIgnoreCase).
+            thenComparing(IndexedPerson::dateBirth).
+            thenComparing(IndexedPerson::dateDeath).
+            compare(this, that);
     }
 
     public UUID preferRefn() {
@@ -29,6 +45,7 @@ public record IndexedPerson(UUID id, Refn refn, String name, int pkid, Day dateB
         return Objects.nonNull(this.dateBirth) && this.dateBirth.isRecent();
     }
 
+    @NonNull
     public String dates() {
         return this.dateBirth.simplistic()+"-"+this.dateDeath.simplistic();
     }

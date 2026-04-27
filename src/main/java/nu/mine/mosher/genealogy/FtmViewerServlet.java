@@ -19,6 +19,9 @@
 package nu.mine.mosher.genealogy;
 
 import jakarta.servlet.http.*;
+import nu.mine.mosher.genealogy.xy.*;
+import nu.mine.mosher.genealogy.xy.metrics.*;
+import nu.mine.mosher.genealogy.xy.shape.*;
 import org.apache.hc.core5.net.*;
 import org.apache.ibatis.session.*;
 import org.apache.tika.exception.TikaException;
@@ -42,7 +45,7 @@ import java.util.stream.Collectors;
 
 import static nu.mine.mosher.genealogy.ContextInitializer.SQL_SESSION_FACTORY;
 import static nu.mine.mosher.genealogy.HtmlUtils.*;
-import static nu.mine.mosher.genealogy.StringUtils.safe;
+import static nu.mine.mosher.genealogy.StringUtils.*;
 import static nu.mine.mosher.genealogy.XmlUtils.*;
 
 /*
@@ -52,6 +55,7 @@ TODO submitter/copyright
 TODO synch info (note: only in databases that have been sync'd)
 */
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class FtmViewerServlet extends HttpServlet {
     private static final Logger LOG =  LoggerFactory.getLogger(FtmViewerServlet.class);
 
@@ -136,10 +140,7 @@ public class FtmViewerServlet extends HttpServlet {
             return null;
         }
         final Optional<Cookie> optCookie = Arrays.stream(cookies).filter(c -> c.getName().equals(name)).findAny();
-        if (optCookie.isEmpty()) {
-            return null;
-        }
-        return optCookie.get().getValue();
+        return optCookie.map(Cookie::getValue).orElse(null);
     }
 
     private Optional<Document> handleRequest(final HttpServletRequest request, final HttpServletResponse response, final Instant timestamp) throws ParserConfigurationException, IOException, SQLException, JDOMException, SAXException, TikaException, TransformerException, URISyntaxException, GeneralSecurityException {
@@ -169,6 +170,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final Optional<Integer> pkidCitation = getRequestedSourcePkid(request);
 
+        // note, cookie "idtoken" set by google.js
         final var optRbacSubject = new RbacAuthenticator(cookie(request, "idtoken")).authenticate();
         final var authorizer = new RbacAuthorizer(optRbacSubject, now);
 
@@ -230,7 +232,11 @@ public class FtmViewerServlet extends HttpServlet {
             dom = Optional.of(pageSource(request, authorizer, indexedDatabase.get(), pkidCitation.get(), now));
         } else if (nameTree.isPresent()) {
             if (indexedDatabase.isPresent()) {
-                dom = Optional.of(pageIndexPeople(authorizer, indexedDatabase.get(), now));
+                if (getRequestedChartPage(request)) {
+                    dom = Optional.of(pageChart(authorizer, indexedDatabase.get(), now));
+                } else {
+                    dom = Optional.of(pageIndexPeople(authorizer, indexedDatabase.get(), now, getRequestedAllowChart(request)));
+                }
             } else {
                 LOG.info("tree does not currently exist");
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -369,6 +375,80 @@ public class FtmViewerServlet extends HttpServlet {
         return Optional.empty();
     }
 
+    private static final boolean DEFAULT_ALLOW_CHART = false; // TODO change to TRUE to release drop-line chart feature
+
+    private static boolean getRequestedAllowChart(final HttpServletRequest request) {
+        boolean ret = DEFAULT_ALLOW_CHART;
+
+        final Optional<String> optValue = Optional.ofNullable(request.getParameter("allowChart"));
+        if (optValue.isPresent()) {
+            try {
+                ret = Boolean.parseBoolean(optValue.get());
+            } catch (final Throwable e) {
+                LOG.warn("Invalid format for allowChart query parameter: {}", optValue.get());
+            }
+        }
+
+        if (ret) {
+            LOG.warn("Found allowChart request parameter set to TRUE.");
+        }
+
+        return ret;
+    }
+
+    private static boolean getRequestedChartPage(final HttpServletRequest request) {
+        boolean ret = false;
+
+        final Optional<String> optValue = Optional.ofNullable(request.getParameter("chart"));
+        if (optValue.isPresent()) {
+            try {
+                ret = Boolean.parseBoolean(optValue.get());
+            } catch (final Throwable e) {
+                LOG.info("Invalid format for chart query parameter: {}", optValue.get());
+            }
+        }
+
+        return ret;
+    }
+
+    private static List<Fami> buildFamis(final Connection conn, final Map<Integer, Indi> mapIdToIndi, final FontBasedMetrics metricsFont) throws SQLException {
+        final List<Fami> famis = new ArrayList<>();
+        try (final PreparedStatement select = conn.prepareStatement(sqlFami())) {
+            try (final ResultSet rs = select.executeQuery()) {
+                int prev = -1;
+                Fami fami = null;
+                while (rs.next()) {
+                    final int curr = rs.getInt("ID");
+                    if (curr != prev) {
+                        if (Objects.nonNull(fami)) {
+                            fami.calc();
+                            famis.add(fami);
+                        }
+                        fami = new Fami(metricsFont);
+                        fami.setHusb(mapIdToIndi.get(rs.getInt("Person1ID")));
+                        fami.setWife(mapIdToIndi.get(rs.getInt("Person2ID")));
+                        prev = curr;
+                    }
+                    final Integer personID1 = rs.getInt("PersonID");
+                    Indi personID = mapIdToIndi.get(personID1);
+                    fami.addChild(personID);
+                }
+                if (Objects.nonNull(fami)) {
+                    fami.calc();
+                    famis.add(fami);
+                }
+            }
+        }
+        return famis;
+    }
+
+    private static String sqlFami() {
+        return
+                "SELECT R.ID, R.Person1ID, R.Person2ID, C.PersonID "+
+                        "FROM Relationship AS R LEFT OUTER JOIN ChildRelationship AS C ON (C.RelationshipID = R.ID) "+
+                        "ORDER BY R.ID";
+    }
+
     private Document pageIndexDatabases(final RbacAuthorizer role, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final Document dom = XmlUtils.empty();
 
@@ -420,7 +500,100 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private Document pageIndexPeople(RbacAuthorizer role, final IndexedDatabase indexedDatabase, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageChart(RbacAuthorizer role, IndexedDatabase indexedDatabase, ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
+        final List<IndexedPerson> list;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
+            list = map.select();
+            list.sort(Comparator.naturalOrder());
+        }
+
+        final var metricsFont = new FontBasedMetrics();
+        final var metricsChart = new ChartMetrics(list, metricsFont);
+
+        final var indis = list.stream().map(idx -> Indi.buildFromIndexedPerson(idx, metricsFont, metricsChart.scaleFactor())).toList();
+        final var mapIdToIndi = indis.stream().collect(Collectors.toMap(Indi::getId, i -> i));
+//        LOG.info("MAP ID TO INDI------------------------------------------------------");
+//        for (final var e : mapIdToIndi.entrySet()) {
+//            LOG.info("    {} -> {} {}", e.getKey(), e.getValue().getNameGiven(), e.getValue().getNameSur());
+//        }
+
+        final List<Fami> famis;
+        try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            famis = buildFamis(conn, mapIdToIndi, metricsFont);
+        }
+
+
+
+
+
+        final Document dom = XmlUtils.empty();
+
+        final Element html = e(dom, "html");
+        html.setAttribute("class", "fontFeatures unicodeWebFonts solarizedLight");
+
+
+
+        final Element head = e(html, "head");
+        final Element title = e(head, "title");
+        title.setTextContent(indexedDatabase.file().getName());
+
+        final Element css = e(head, "link");
+        css.setAttribute("rel", "stylesheet");
+        css.setAttribute("href", "./assets/styles/nu/mine/mosher/genealogy/page-chart.css");
+
+        addAuthHead(head);
+
+
+        final Element body = e(html, "body");
+
+        fragNav(role, indexedDatabase, null, body);
+
+        e(body, "hr");
+
+        final Element header = e(body, "header");
+        final Element h1 = e(header, "h1");
+        h1.setTextContent(indexedDatabase.file().getName());
+
+        final var switchIndexChart = e(header, "div");
+        {
+            final var a = e(switchIndexChart, "a");
+            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=false&allowChart=true");
+            a.setTextContent("<index>");
+        }
+        {
+            final var spDates = e(switchIndexChart, "span");
+            spDates.setTextContent(" ");
+        }
+        {
+            final var a = e(switchIndexChart, "a");
+            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=true&allowChart=true");
+            a.setTextContent("<chart>");
+        }
+
+        e(body, "hr");
+
+        final var section = e(body, "section");
+        if (role.can(RbacPermission.READ)) {// TODO LIST? (that would let untrusted users see the chart)
+            final var svg = new SvgBuilder(role, calculateSvgSize(indis), section, indexedDatabase.file().getName(), metricsFont);
+            for (final var s : famis) {
+                s.saveSvg(svg);
+            }
+            for (final var s : indis) {
+                s.saveSvg(svg);
+            }
+        } else {
+            fragNoticeChart(body);
+        }
+
+        e(body, "hr");
+
+        fragFooter(Optional.empty(), body, now);
+
+        return dom;
+    }
+
+    private Document pageIndexPeople(RbacAuthorizer role, final IndexedDatabase indexedDatabase, ZonedDateTime now, boolean allowChart) throws ParserConfigurationException, SQLException, URISyntaxException {
         final List<IndexedPerson> list;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
@@ -462,6 +635,25 @@ public class FtmViewerServlet extends HttpServlet {
         final Element header = e(body, "header");
         final Element h1 = e(header, "h1");
         h1.setTextContent(indexedDatabase.file().getName());
+
+
+        if (allowChart) {
+            final var switchIndexChart = e(header, "div");
+            {
+                final var a = e(switchIndexChart, "a");
+                a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=false&allowChart=true");
+                a.setTextContent("<index>");
+            }
+            {
+                final var spDates = e(switchIndexChart, "span");
+                spDates.setTextContent(" ");
+            }
+            {
+                final var a = e(switchIndexChart, "a");
+                a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=true&allowChart=true");
+                a.setTextContent("<chart>");
+            }
+        }
 
         e(body, "hr");
 
@@ -572,13 +764,12 @@ public class FtmViewerServlet extends HttpServlet {
         final Element divL = e(nav, "div");
         Styles.add(divL, Styles.Layout.c2Left);
 
-        Element sp;
         final Element a = e(divL, "a");
         a.setAttribute("href", "./");
         a.setTextContent("{home}");
 
         if (Objects.nonNull(indexedDatabase)) {
-            sp = e(divL, "span");
+            final var sp = e(divL, "span");
             sp.setTextContent(" ");
             final Element a2 = e(divL, "a");
             a2.setAttribute("href", urlQueryTree(indexedDatabase));
@@ -602,7 +793,7 @@ public class FtmViewerServlet extends HttpServlet {
                             span.setTextContent(" see also:");
                             labeled = true;
                         }
-                        sp = e(divL, "span");
+                        final var sp = e(divL, "span");
                         sp.setTextContent(" ");
                         final Element a3 = e(divL, "a");
                         a3.setAttribute("href", urlQueryTreePerson(db, optPerson.get()));
@@ -652,17 +843,23 @@ public class FtmViewerServlet extends HttpServlet {
         addNoMenuHead(head);
         addCopyCitationHead(head);
 
-        final Element body = e(html, "body");
-
-        fragNav(role, indexedDatabase, indexedPerson, body);
+        final boolean can;
         if (role.can(RbacPermission.READ)) {
+            can = role.can(indexedPerson.isRecent() ? RbacPermission.PRIVATE : RbacPermission.PUBLIC);
+        } else {
+            can = false;
+        }
+
+        final Element body = e(html, "body");
+        fragNav(role, indexedDatabase, indexedPerson, body);
+        if (can) {
             e(body, "hr");
             fragPersonParents(indexedDatabase, indexedPerson, body);
         }
         e(body, "hr");
-        fragName(indexedDatabase, indexedPerson, person, body,  footnotes);
+        fragName(can, indexedDatabase, indexedPerson, person, body, footnotes);
         e(body, "hr");
-        if (role.can(RbacPermission.READ)) {
+        if (can) {
             fragEvents(role, indexedDatabase, new FtmLink(FtmLinkTableID.Person, person.pkid()), body, footnotes);
             fragPersonPartnerships(role, indexedDatabase, indexedPerson, body, footnotes);
         } else {
@@ -670,7 +867,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
         e(body, "hr");
         fragCite(req, body, person, indexedDatabase, now);
-        if (role.can(RbacPermission.READ)) {
+        if (can) {
             e(body, "hr");
             fragFootnotes(req, indexedDatabase, body, footnotes);
         }
@@ -930,7 +1127,7 @@ public class FtmViewerServlet extends HttpServlet {
             orElse("\u00a0\u2e3a"));
     }
 
-    private void fragName(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body, Footnotes<EventSource> footnotes) throws SQLException, URISyntaxException {
+    private void fragName(final boolean can, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final Person person, final Element body, Footnotes<EventSource> footnotes) throws SQLException, URISyntaxException {
         final Element header = e(body, "header");
         final Element h1 = e(header, "h1");
         final Element sup = e(h1, "sup");
@@ -940,11 +1137,13 @@ public class FtmViewerServlet extends HttpServlet {
         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, indexedPerson));
 
         final Element personName = e(h1, "span");
-        personName.setTextContent(styleName(person.nameWithSlashes()));
+        personName.setTextContent(can ? styleName(person.nameWithSlashes()) : "[redacted]");
         Styles.add(personName, Styles.Render.hi0);
 
-        final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
-        fragNoteRefs(indexedDatabase, linkPerson, h1, footnotes);
+        if (can) {
+            final FtmLink linkPerson = new FtmLink(FtmLinkTableID.Person, person.pkid());
+            fragNoteRefs(indexedDatabase, linkPerson, h1, footnotes);
+        }
     }
 
     private static String styleName(String n) {
@@ -980,17 +1179,23 @@ public class FtmViewerServlet extends HttpServlet {
         p.setTextContent("[You must sign in using your Google identity to view the details of this person.]");
     }
 
+    private static void fragNoticeChart(final Element body) {
+        final Element p = e(body, "p");
+        p.setTextContent("[You must sign in using your Google identity to view this chart.]");
+    }
+
     private static void fragFooter(final Optional<Person> person, final Element body, final ZonedDateTime now) {
         final Element footer = e(body, "footer");
 
         final Element ul = e(footer, "ul");
 
-        if (person.isPresent() && Objects.nonNull(person.get().lastmod())) {
-            final Element li = e(ul, "li");
-            final Element small = e(li, "small");
-            final Element tsLastMod = e(small, "span");
-            tsLastMod.setTextContent(person.get().lastmod() + " : person last modified");
-        }
+        // TODO Person.UpdateDate stopped working some time after 2025-07-02. Can we get this info elsewhere?
+//        if (person.isPresent() && Objects.nonNull(person.get().lastmod())) {
+//            final Element li = e(ul, "li");
+//            final Element small = e(li, "small");
+//            final Element tsLastMod = e(small, "span");
+//            tsLastMod.setTextContent(person.get().lastmod() + " : person last modified");
+//        }
 
         {
             final Element li = e(ul, "li");
@@ -1127,6 +1332,7 @@ public class FtmViewerServlet extends HttpServlet {
                         final Element a = e(section, "a");
                         Styles.add(a, Styles.Links.hilite);
                         a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
+                        // TODO: need to check if partner is private, and use "[redacted]" instead of name
                         a.setTextContent(partnership.name());
                     }
 
@@ -1136,7 +1342,7 @@ public class FtmViewerServlet extends HttpServlet {
 
                     fragEvents(role, indexedDatabase, linkRelationship, section, footnotes);
 
-                    fragPersonPartnershipChildren(indexedDatabase, indexedPerson, partnership.id(), section);
+                    fragPersonPartnershipChildren(role, indexedDatabase, indexedPerson, partnership.id(), section);
 
                     // TODO: how would it look if children's births were merged with partnership events?
                 }
@@ -1144,7 +1350,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
     }
 
-    private void fragPersonPartnershipChildren(final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final int idRelationship, final Element section) throws SQLException, URISyntaxException {
+    private void fragPersonPartnershipChildren(final RbacAuthorizer role, final IndexedDatabase indexedDatabase, final IndexedPerson indexedPerson, final int idRelationship, final Element section) throws SQLException, URISyntaxException {
         final List<PersonChild> children;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final ChildrenMap map = session.getMapper(ChildrenMap.class);
@@ -1164,6 +1370,13 @@ public class FtmViewerServlet extends HttpServlet {
             span.setTextContent("[no known children for this partnership (in this database)]");
         } else {
             for (final PersonChild child : children) {
+                final boolean can;
+                if (role.can(RbacPermission.READ)) {
+                    can = role.can(child.dateBirth().isRecent() ? RbacPermission.PRIVATE : RbacPermission.PUBLIC);
+                } else {
+                    can = false;
+                }
+
                 UUID uuidLink= child.id();
                 final Optional<Refn> optRefn = findRefnFor(indexedDatabase, uuidLink);
                 if (optRefn.isPresent()) {
@@ -1174,18 +1387,25 @@ public class FtmViewerServlet extends HttpServlet {
                 final Element tdDate = e(tr, "td");
                 Styles.add(tdDate, Styles.Render.nowrap);
                 final Element spanDate = e(tdDate, "span");
-                ifPresent(child.dateBirth(), spanDate);
-                Styles.add(spanDate, Styles.Render.hi1);
+                if (can) {
+                    ifPresent(child.dateBirth(), spanDate);
+                    Styles.add(spanDate, Styles.Render.hi1);
+                }
 
                 final Element td = e(tr, "td");
-                if (child.nature().display()) {
+                if (can && child.nature().display()) {
                     final Element span = e(td, "span");
                     span.setTextContent("("+child.nature()+") ");
                 }
-                final Element a = e(td, "a");
-                Styles.add(a, Styles.Links.hilite);
-                a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
-                a.setTextContent(child.name());
+                if (can) {
+                    final Element a = e(td, "a");
+                    Styles.add(a, Styles.Links.hilite);
+                    a.setAttribute("href", urlQueryTreePerson(indexedDatabase, IndexedPerson.from(uuidLink)));
+                    a.setTextContent(child.name());
+                } else {
+                    final Element span = e(td, "span");
+                    span.setTextContent("[redacted]");
+                }
 
                 if (0 < child.grandchildren()) {
                     final Element gc = e(td, "sup");
@@ -1298,5 +1518,17 @@ public class FtmViewerServlet extends HttpServlet {
 
     private static FileFilter ftmDbFilter() {
         return f -> f.isFile() && f.canRead() && f.getName().toLowerCase().endsWith(".ftm");
+    }
+
+    public static Bounds calculateSvgSize(final Collection<Indi> indis) {
+        return indis.stream().map(Indi::getBounds).reduce((b1, b2) -> {
+            final double xMin = Math.min(b1.getMinX(), b2.getMinX());
+            final double xMax = Math.max(b1.getMaxX(), b2.getMaxX());
+            final double width = Math.abs(xMax-xMin);
+            final double yMin = Math.min(b1.getMinY(), b2.getMinY());
+            final double yMax = Math.max(b1.getMaxY(), b2.getMaxY());
+            final double height = Math.abs(yMax-yMin);
+            return new BoundingBox(xMin, yMin, width, height);
+        }).get();
     }
 }
