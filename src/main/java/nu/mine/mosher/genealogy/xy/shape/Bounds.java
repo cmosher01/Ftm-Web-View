@@ -1,35 +1,43 @@
 package nu.mine.mosher.genealogy.xy.shape;
 
-public abstract class Bounds {
+public final class Bounds {
     private final double minX;
     private final double minY;
     private final double width;
     private final double height;
-    private final double maxX;
-    private final double maxY;
 
-    protected Bounds(double minX, double minY, double width, double height) {
+    public Bounds(double minX, double minY, double width, double height) {
         this.minX = minX;
         this.minY = minY;
         this.width = width;
         this.height = height;
-        this.maxX = minX + width;
-        this.maxY = minY + height;
     }
 
-    public final double getMinX() { return this.minX; }
+    public double getMinX() { return this.minX; }
 
-    public final double getMinY() { return this.minY; }
+    public double getMinY() { return this.minY; }
 
-    public final double getWidth() { return this.width; }
+    public double getWidth() { return this.width; }
 
-    public final double getHeight() { return this.height; }
+    public double getHeight() { return this.height; }
 
-    public final double getMaxX() { return this.maxX; }
+    public double getMaxX() { return this.minX + this.width; }
 
-    public final double getMaxY() { return this.maxY; }
+    public double getMaxY() { return this.minY + this.height; }
 
-    public abstract Bounds inset(final Insets insets);
+    public Bounds inset(final Insets insets) {
+        return new Bounds(
+            this.minX - insets.getLeft(),
+            this.minY - insets.getTop(),
+            this.width + insets.getLeft() + insets.getRight(),
+            this.height + insets.getTop() + insets.getBottom());
+    }
 
-    public abstract Bounds translate(final double dx, final double dy);
+    public Bounds translate(final double dx, final double dy) {
+        return new Bounds(
+            this.minX + dx,
+            this.minY + dy,
+            this.width,
+            this.height);
+    }
 }

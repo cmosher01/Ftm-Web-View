@@ -25,8 +25,6 @@ public final class HeadlessWordWrap {
         double x = 0.0D;
         double y = 0.0D;
 
-
-
         m.setPosition(posBegin);
         while (m.getPosition() < posEnd) {
             final var line = m.nextLayout((float)maxWidth);

@@ -233,19 +233,19 @@ public class SvgBuilder {
         final double x = center.getX()-width/2.0D;
         final double height = metrics.lineHeight() * wrap.nLines();
         final double y = (center.getY()-height/2.0D)+ metrics.fontAscent();
-        return new BoundingBox(x, y, width, height);
+        return new Bounds(x, y, width, height);
     }
 
     private static String formatLink(final UUID refn, final String treename) {
         return String.format("?tree=%s&person_uuid=%s", treename, refn);
     }
 
-    // double as svg user coordinates
+    // double, as svg user coordinates
     private static String uc(final Double f) {
         return String.format("%.2f", f);
     }
 
-    // double as svg pixels
+    // double, as svg pixels
     private static String px(final Double f) {
         return uc(f)+"px";
     }

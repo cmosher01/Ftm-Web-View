@@ -1528,7 +1528,7 @@ public class FtmViewerServlet extends HttpServlet {
             final double yMin = Math.min(b1.getMinY(), b2.getMinY());
             final double yMax = Math.max(b1.getMaxY(), b2.getMaxY());
             final double height = Math.abs(yMax-yMin);
-            return new BoundingBox(xMin, yMin, width, height);
+            return new Bounds(xMin, yMin, width, height);
         }).get();
     }
 }

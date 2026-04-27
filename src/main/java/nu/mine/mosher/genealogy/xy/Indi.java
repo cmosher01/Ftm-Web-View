@@ -95,7 +95,7 @@ public class Indi {
             metrics.lineHeight() * (this.wrapNameFull.nLines() + this.wrapLifespan.nLines()) +
             metrics.lineHeightSmall() * (Objects.isNull(this.wrapTagline) ? 0 : this.wrapTagline.nLines());
 
-        this.bounds = new BoundingBox(
+        this.bounds = new Bounds(
             (tXY.getX()-width/2D),
             ((tXY.getY()-height/2D)+metrics.fontAscent()),
             width,
