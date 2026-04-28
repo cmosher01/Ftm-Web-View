@@ -6,6 +6,10 @@ import nu.mine.mosher.genealogy.xy.shape.*;
 
 import java.util.*;
 
+/**
+ * After constructing, must call setHusb(), setWife(), and addChild() (as necessary),
+ * and then call calc(), and finally saveSvg()
+ */
 public class Fami {
     private static final double MIN_DISTANCE = 1.51D;
 
@@ -36,11 +40,11 @@ public class Fami {
 
 
     public void setHusb(final Indi indi) {
-        this.husb = indi;
+        this.husb = indi; // could be null
     }
 
     public void setWife(final Indi indi) {
-        this.wife = indi;
+        this.wife = indi; // could be null
     }
 
     public void addChild(final Indi indi) {
@@ -91,28 +95,25 @@ public class Fami {
 */
 
     public void calc() {
-        if (this.husb == null && this.wife == null && this.rChild.isEmpty()) {
-            return;
-        }
-
-        final Couple couple = new Couple(this.husb, this.wife);
-
-        // calculate "===" marriage/parent bar
+        final var couple = new Couple(this.husb, this.wife);
         if (couple.exists()) {
             buildParentBars(couple);
+            // ^^^ sets: this.parentBar1, this.parentBar2
         }
 
         if (!this.rChild.isEmpty()) {
             buildChildsBar(this.rChild);
+            // ^^^ sets: this.childsBar
             buildChildBars(this.rChild, this.childsBar);
+            // ^^^sets this.rChildBar
 
-            // if parent(s) exist, draw descent bars (parent, middle, childs)
             if (couple.exists) {
                 final Point2D descentBarParentStart = calcDescentBarParentStart(couple, this.childsBar);
                 final Point2D descentBarChildsStart = calcDescentBarChildsStart(descentBarParentStart, this.childsBar);
-                double descentBarMiddleY = calcDescentBarMiddleY(descentBarChildsStart, this.rChild.size());
+                final double descentBarMiddleY = calcDescentBarMiddleY(descentBarChildsStart, this.rChild.size());
 
                 buildDescentBars(descentBarParentStart, descentBarMiddleY, descentBarChildsStart);
+                // ^^^ sets: this.descentBarParent, this.descentBarMiddle, this.descentBarChilds
             }
         }
     }
@@ -177,18 +178,32 @@ public class Fami {
         }
     }
 
+    /**
+     * Calculate the point on the (bottom) marriage bar where the descentBarParent starts.
+     * For short bars, use the midpoint.
+     * For longer bars (where the two parents are for from each other), use a point close to
+     * one of them (the one that is nearest to the children).
+     *
+     * @param couple the center points of the two parents
+     * @param childsBar the horizontal childsBar
+     * @return descentBarParent starting point
+     */
     private Point2D calcDescentBarParentStart(final Couple couple, final Line childsBar) {
-        // midpoint of child bar
-        final var child = new Point2D((childsBar.getStartX() + childsBar.getEndX()) / 2.0D, childsBar.getStartY());
+        final var child = childsBar.midpoint();
 
         // Figure out which parent is closest to the child bar midpoint
-        // and calculate the parent bar start point, near that parent
+        // (and calculate the parent bar start point, near that parent)
         return child.distance(couple.pt1()) < child.distance(couple.pt2()) ?
             calcDescentBarParentStart(couple.pt1(), couple.pt2()) :
             calcDescentBarParentStart(couple.pt2(), couple.pt1());
     }
 
-    // calculate the point on the (bottom) marriage bar where the descentBarParent starts
+    /**
+     *
+     * @param ptNear center point of nearest parent
+     * @param ptFar center point of furthest parent
+     * @return descentBarParent starting point
+     */
     private Point2D calcDescentBarParentStart(final Point2D ptNear, final Point2D ptFar) {
         // Calculate ratio r of distance d along the length of the marriage bar,
         // to the full length, from the near
@@ -206,32 +221,60 @@ public class Fami {
 
         double r;
         if (D < d * 4.0D) {
-            r = 1.0D/2.0D;
+            r = 0.5D;
         } else {
             r = d/D;
         }
 
         return new Point2D(
-                (1-r) * ptStart.getX() + r * ptEnd.getX(),
-                (1-r) * ptStart.getY() + r * ptEnd.getY());
+                (1-r) * ptStart.x() + r * ptEnd.x(),
+                (1-r) * ptStart.y() + r * ptEnd.y());
     }
 
     private Point2D calcDescentBarChildsStart(final Point2D descentBarParentStart, final Line childsBar) {
         // Minimum horiz distance of descentBarChildsStart from ends of childsBar allowed.
         // A visual nicety, it looks bad if the descent line is really close to an end of the childs bar.
-        final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D;
+        /*
+            Not this:
+              ===
+               |
+               |
+               |
+              +*----------+
+              |           |
+            +-|-+       +-|-+
+            | * |       | * |
+            +---+       +---+
+
+            but this instead:
+              ===
+               |
+               |
+               +---+
+                   |
+              +----*------+
+              |           |
+            +-|-+       +-|-+
+            | * |       | * |
+            +---+       +---+
+         */
+
+        final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D; // TODO move this to ChartMetrics?
+        final double minXLen = minXend * 2.0D;
+
         final double x;
-        if (childsBar.getEndX() - childsBar.getStartX() < minXend*2.0D) {
-            x = (childsBar.getEndX() + childsBar.getStartX())/2.0D;
+        if (childsBar.length() < minXLen) {
+            // corner case: the bar is too short to avoid the case of "too close to the end"
+            x = childsBar.midpoint().x();
         } else {
-            x = MathUtils.clamp(childsBar.getStartX()+minXend, descentBarParentStart.getX(), childsBar.getEndX()-minXend);
+            x = MathUtils.clamp(childsBar.getStartX()+minXend, descentBarParentStart.x(), childsBar.getEndX()-minXend);
         }
         return new Point2D(x, childsBar.getStartY());
     }
 
     private double calcDescentBarMiddleY(final Point2D descentBarChildsStart, final int nChild) {
         // calculate height of middle descent bar (which is hidden if there's only one child)
-        double descentBarMiddleY = descentBarChildsStart.getY();
+        double descentBarMiddleY = descentBarChildsStart.y();
         if (1 < nChild) {
             descentBarMiddleY -= this.metricsFont.getChildBarHeight() / 2.0D;
         }
@@ -256,9 +299,17 @@ public class Fami {
     }
 
 
-
-
-
+    /**
+     * <p>
+     * Represents two parents' center points.
+     * The main purpose of this class is to help handle
+     * the case where exactly one parent exists.
+     * In this case, it calculates the where the other
+     * parent (the "phantom") would be placed.
+     * </p>
+     *
+     * TODO Can we display a "?" plaque for a phantom?
+     */
     private class Couple {
         private final boolean exists;
         private final Point2D pt1;
@@ -268,7 +319,7 @@ public class Fami {
             this.exists = !(husb == null && wife == null);
 
             if (!this.exists) {
-                // should never happen
+                // these points should never be used anywhere
                 this.pt1 = Point2D.ZERO;
                 this.pt2 = Point2D.ZERO;
             } else if (husb == null) {

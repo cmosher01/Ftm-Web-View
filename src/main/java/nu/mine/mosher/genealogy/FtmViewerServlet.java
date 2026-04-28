@@ -430,7 +430,7 @@ public class FtmViewerServlet extends HttpServlet {
                         prev = curr;
                     }
                     final Integer personID1 = rs.getInt("PersonID");
-                    Indi personID = mapIdToIndi.get(personID1);
+                    final Indi personID = mapIdToIndi.get(personID1); // WARNING: could be null
                     fami.addChild(personID);
                 }
                 if (Objects.nonNull(fami)) {

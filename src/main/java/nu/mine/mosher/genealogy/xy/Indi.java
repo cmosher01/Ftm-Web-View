@@ -96,8 +96,8 @@ public class Indi {
             metrics.lineHeightSmall() * (Objects.isNull(this.wrapTagline) ? 0 : this.wrapTagline.nLines());
 
         this.bounds = new Bounds(
-            (tXY.getX()-width/2D),
-            ((tXY.getY()-height/2D)+metrics.fontAscent()),
+            (tXY.x()-width/2D),
+            ((tXY.y()-height/2D)+metrics.fontAscent()),
             width,
             height);
 
@@ -129,11 +129,11 @@ public class Indi {
     }
 
     public double x() {
-        return this.xy.getX();
+        return this.xy.x();
     }
 
     public double y() {
-        return this.xy.getY();
+        return this.xy.y();
     }
 
     public int getId() {

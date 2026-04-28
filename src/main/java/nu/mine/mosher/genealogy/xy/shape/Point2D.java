@@ -13,16 +13,16 @@ public class Point2D {
         this.y = y;
     }
 
-    public final double getX() {
+    public final double x() {
         return this.x;
     }
-    public final double getY() {
+    public final double y() {
         return this.y;
     }
 
     public double distance(final Point2D point) {
-        double a = this.x - point.getX();
-        double b = this.y - point.getY();
+        double a = this.x - point.x();
+        double b = this.y - point.y();
         return Math.sqrt(a * a + b * b);
     }
 

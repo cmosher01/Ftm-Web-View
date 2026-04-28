@@ -230,9 +230,9 @@ public class SvgBuilder {
     private static Bounds boundsRedacted(final FontBasedMetrics metrics, final Point2D center) {
         final var wrap = wRedacted(metrics);
         final double width = wrap.width();
-        final double x = center.getX()-width/2.0D;
+        final double x = center.x()-width/2.0D;
         final double height = metrics.lineHeight() * wrap.nLines();
-        final double y = (center.getY()-height/2.0D)+ metrics.fontAscent();
+        final double y = (center.y()-height/2.0D)+ metrics.fontAscent();
         return new Bounds(x, y, width, height);
     }
 
