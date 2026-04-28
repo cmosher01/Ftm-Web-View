@@ -14,7 +14,7 @@ public class Insets {
     }
 
     public Insets(final double insets) {
-        this(insets,insets,insets,insets);
+        this(insets, insets, insets, insets);
     }
 
     public double getLeft() {

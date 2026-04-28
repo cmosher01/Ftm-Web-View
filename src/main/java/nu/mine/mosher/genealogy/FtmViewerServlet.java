@@ -411,7 +411,7 @@ public class FtmViewerServlet extends HttpServlet {
         return ret;
     }
 
-    private static List<Fami> buildFamis(final Connection conn, final Map<Integer, Indi> mapIdToIndi, final FontBasedMetrics metricsFont) throws SQLException {
+    private static List<Fami> buildFamis(final Connection conn, final Map<Integer, Indi> mapIdToIndi, final FontBasedMetrics metricsFont, final ChartMetrics metricsChart) throws SQLException {
         final List<Fami> famis = new ArrayList<>();
         try (final PreparedStatement select = conn.prepareStatement(sqlFami())) {
             try (final ResultSet rs = select.executeQuery()) {
@@ -424,7 +424,7 @@ public class FtmViewerServlet extends HttpServlet {
                             fami.calc();
                             famis.add(fami);
                         }
-                        fami = new Fami(metricsFont);
+                        fami = new Fami(metricsFont, metricsChart);
                         fami.setHusb(mapIdToIndi.get(rs.getInt("Person1ID")));
                         fami.setWife(mapIdToIndi.get(rs.getInt("Person2ID")));
                         prev = curr;
@@ -520,7 +520,7 @@ public class FtmViewerServlet extends HttpServlet {
 
         final List<Fami> famis;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
-            famis = buildFamis(conn, mapIdToIndi, metricsFont);
+            famis = buildFamis(conn, mapIdToIndi, metricsFont, metricsChart);
         }
 
 

@@ -1,6 +1,6 @@
 package nu.mine.mosher.genealogy.xy;
 
-import nu.mine.mosher.genealogy.xy.metrics.FontBasedMetrics;
+import nu.mine.mosher.genealogy.xy.metrics.*;
 import nu.mine.mosher.genealogy.xy.shape.*;
 
 import java.util.*;
@@ -9,6 +9,7 @@ public class Fami {
     private static final double MIN_DISTANCE = 1.51D;
 
     private final FontBasedMetrics metricsFont;
+    private final ChartMetrics metricsChart;
 
     private Indi husb;
     private Indi wife;
@@ -22,13 +23,14 @@ public class Fami {
     private Line descentBarMiddle;
     private Line descentBarChilds;
 
-    private Line childBar;
+    private Line childsBar;
     private Line[] rChildBar;
 
 
 
-    public Fami(final FontBasedMetrics metricsFont) {
+    public Fami(final FontBasedMetrics metricsFont, final ChartMetrics metricsChart) {
         this.metricsFont = metricsFont;
+        this.metricsChart = metricsChart;
     }
 
 
@@ -52,20 +54,20 @@ public class Fami {
 
                                   parentBar1              v
                     -----------------------------       <------
-                  hu*sb                       wi*fe     metrics.barHeight
+                  hu*sb                       wi*fe     metrics.marriageBarHalfHeight * 2
                     ------*----------------------       <------
     descentBarParentStart |       parentBar2              ^
                           |
                           | < descentBarParent
                           |
                           |               v descentBarMiddle v
-                          *---------------------------------------------*
+    -descentBarMiddleY->  *---------------------------------------------*
                                                                         |
                                                                         | < descentBarChilds
                                                                         |
-                                                  descentBarChildsStart |       childBar          v
+                                                  descentBarChildsStart |       childsBar          v
                                                       +-----------+-----*-----------------+     <------
-                                           rChildBar: |[0]        |[1]                 [2]|     childHeight
+                                           rChildBar: |[0]        |[1]                 [2]|     childBarHeight
                        ----minimum-Y-of-children--->  |         +-|-+                     |     <------
                                                       |         |c*2|                   +-|-+     ^
                                                     +-|-+       +---+                   |c*3|
@@ -99,33 +101,32 @@ public class Fami {
         if (couple.exists) {
             parentBar1 = new Line();
             parentBar1.setStartX(couple.pt1x);
-            parentBar1.setStartY(couple.pt1y - this.metricsFont.getBarHeight());
+            parentBar1.setStartY(couple.pt1y - this.metricsFont.getMarriageBarHalfHeight());
             parentBar1.setEndX(couple.pt2x);
-            parentBar1.setEndY(couple.pt2y - this.metricsFont.getBarHeight());
+            parentBar1.setEndY(couple.pt2y - this.metricsFont.getMarriageBarHalfHeight());
 
             parentBar2 = new Line();
             parentBar2.setStartX(couple.pt1x);
-            parentBar2.setStartY(couple.pt1y + this.metricsFont.getBarHeight());
+            parentBar2.setStartY(couple.pt1y + this.metricsFont.getMarriageBarHalfHeight());
             parentBar2.setEndX(couple.pt2x);
-            parentBar2.setEndY(couple.pt2y + this.metricsFont.getBarHeight());
+            parentBar2.setEndY(couple.pt2y + this.metricsFont.getMarriageBarHalfHeight());
         }
 
         if (!rChild.isEmpty()) {
-            childBar = new Line();
-            childBar.setStartX(rChild.stream().mapToDouble(Indi::x).min().orElseThrow());
-            childBar.setEndX(rChild.stream().mapToDouble(Indi::x).max().orElseThrow());
+            childsBar = new Line();
+            childsBar.setStartX(rChild.stream().mapToDouble(Indi::x).min().orElseThrow());
+            childsBar.setEndX(rChild.stream().mapToDouble(Indi::x).max().orElseThrow());
 
             final double topChildPlaque = this.rChild.stream().map(Indi::getBounds).mapToDouble(Bounds::getMinY).min().orElseThrow();
-            childBar.setY(topChildPlaque - this.metricsFont.getChildHeight());
+            childsBar.setY(topChildPlaque - this.metricsFont.getChildBarHeight());
 
             rChildBar = new Line[rChild.size()];
             for (int i = 0; i < rChildBar.length; i++) {
                 final var c = rChild.get(i);
 
                 rChildBar[i] = new Line();
-
                 rChildBar[i].setX(c.x());
-                rChildBar[i].setStartY(childBar.getStartY());
+                rChildBar[i].setStartY(childsBar.getStartY());
                 rChildBar[i].setEndY(c.y());
             }
 
@@ -140,31 +141,36 @@ public class Fami {
                 final Point2D descentBarParentStart;
                 {
                     // midpoint of child bar
-                    final var child = new Point2D((childBar.getStartX() + childBar.getEndX()) / 2.0D, childBar.getStartY());
+                    final var child = new Point2D((childsBar.getStartX() + childsBar.getEndX()) / 2.0D, childsBar.getStartY());
                     // midpoints of parents
                     final var p1 = new Point2D(couple.pt1x, couple.pt1y);
                     final var p2 = new Point2D(couple.pt2x, couple.pt2y);
                     // figure out which parent is closest to the child bar midpoint
-                    descentBarParentStart = child.distance(p1) < child.distance(p2) ? ptParentDescentBar(p1, p2) : ptParentDescentBar(p2, p1);
+                    // and calculate the parent bar start point
+                    descentBarParentStart =
+                        child.distance(p1) < child.distance(p2) ?
+                        calcDescentBarParentStart(p1, p2) :
+                        calcDescentBarParentStart(p2, p1);
                 }
-
-                // TODO not sure if font-based child height makes sense here, but it looks OK visually
-                // Maybe try a fraction of ChartMetrics.medianMinimumDistanceToNeighborScaled() ? 1/2 or 1/4?
-                final double aSmallDistance = this.metricsFont.getChildHeight();
 
                 final Point2D descentBarChildsStart;
                 {
-                    final double offset = aSmallDistance;
+                    // minimum horiz distance of descentBarChildsStart from ends of childsBar
+                    final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D;
                     final double x;
-                    if (childBar.getEndX()-childBar.getStartX() < offset*2.0D) {
-                        x = (childBar.getEndX()+childBar.getStartX())/2.0D;
+                    if (childsBar.getEndX() - childsBar.getStartX() < minXend*2.0D) {
+                        x = (childsBar.getEndX() + childsBar.getStartX())/2.0D;
                     } else {
-                        x = clamp(childBar.getStartX()+offset, descentBarParentStart.getX(), childBar.getEndX()-offset);
+                        x = clamp(childsBar.getStartX()+minXend, descentBarParentStart.getX(), childsBar.getEndX()-minXend);
                     }
-                    descentBarChildsStart = new Point2D(x, childBar.getStartY());
+                    descentBarChildsStart = new Point2D(x, childsBar.getStartY());
                 }
 
-                final double descentBarMiddleY = descentBarChildsStart.getY() - (rChild.size() < 2 ? 0.0D : aSmallDistance/2.0D);
+                // calculate height of middle descent bar (which is hidden if there's only one child)
+                double descentBarMiddleY = descentBarChildsStart.getY();
+                if (1 < rChild.size()) {
+                    descentBarMiddleY -= this.metricsFont.getChildBarHeight() / 2.0D;
+                };
 
                 descentBarChilds = new Line();
                 descentBarChilds.setStart(descentBarChildsStart);
@@ -191,7 +197,7 @@ public class Fami {
         svg.addLine(this.descentBarParent);
         svg.addLine(this.descentBarMiddle);
         svg.addLine(this.descentBarChilds);
-        svg.addLine(this.childBar);
+        svg.addLine(this.childsBar);
         if (!this.rChild.isEmpty()) {
             Arrays.asList(this.rChildBar).forEach(svg::addLine);
         }
@@ -204,14 +210,31 @@ public class Fami {
 
 
 
-    private Point2D ptParentDescentBar(final Point2D ptNear, final Point2D ptFar) {
-        final Point2D ptStart = new Point2D(ptNear.getX(), ptNear.getY() + this.metricsFont.getBarHeight());
-        final Point2D ptEnd = new Point2D(ptFar.getX(), ptFar.getY() + this.metricsFont.getBarHeight());
-        final double pd = Math.max(ptStart.distance(ptEnd), MIN_DISTANCE);
+    // calculate the point on the (bottom) marriage bar where the descentBarParent starts
+    private Point2D calcDescentBarParentStart(final Point2D ptNear, final Point2D ptFar) {
+        final var ptStart = ptNear.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
+        final var ptEnd = ptFar.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
 
-        final var widthNominal = this.metricsFont.maxWidthPlaque();
-        final var dt = pd < 6.0D*widthNominal ? 0.5D : widthNominal/pd;
-        return new Point2D((1 - dt) * ptStart.getX() + dt * ptEnd.getX(), (1 - dt) * ptStart.getY() + dt * ptEnd.getY());
+        // length of marriage bar
+        final double lenBar = Math.max(ptStart.distance(ptEnd), MIN_DISTANCE);
+
+        // calculate distance d along the length of the marriage bar,
+        // as a fraction of the full length, from the near
+        // parent towards the far parent, at which the descent line will start
+        // But, if the marriage bar is "short enough", then center the descent bar along it (50%)
+        // TODO I think this causes problems if one of the parents is missing:
+        // the bar is short enough to qualify for the 50% rule, but that (always?)
+        // (sometimes?) causes the descent line start point to be behind the plaque.
+        double d;
+        if (lenBar < this.metricsFont.maxWidthPlaque() * 4.0D) {
+            d = 0.5D;
+        } else {
+            d = (this.metricsFont.maxWidthPlaque() / lenBar);
+        }
+
+        return new Point2D(
+            (1-d) * ptStart.getX() + d * ptEnd.getX(),
+            (1-d) * ptStart.getY() + d * ptEnd.getY());
     }
 
 

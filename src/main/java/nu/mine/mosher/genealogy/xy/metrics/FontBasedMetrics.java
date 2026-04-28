@@ -88,11 +88,11 @@ public final class FontBasedMetrics {
         return new Insets(this.heightLine);
     }
 
-    public double getBarHeight() {
+    public double getMarriageBarHalfHeight() {
         return FONT_SIZE_POINTS_NOMINAL / 4.0D;
     }
 
-    public double getChildHeight() {
+    public double getChildBarHeight() {
         return FONT_SIZE_POINTS_NOMINAL * 4.0D;
     }
 }

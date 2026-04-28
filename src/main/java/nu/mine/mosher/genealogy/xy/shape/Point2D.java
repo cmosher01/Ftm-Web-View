@@ -5,7 +5,6 @@ public class Point2D {
 
     private final double x;
     private final double y;
-    private int hash = 0;
 
 
 
@@ -31,31 +30,7 @@ public class Point2D {
         return new Point2D(this.x * factor, this.y * factor);
     }
 
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj instanceof Point2D that) {
-            return this.getX() == that.getX() && this.getY() == that.getY();
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        if (this.hash == 0) {
-            long bits = 7L;
-            bits = 31L * bits + Double.doubleToLongBits(getX());
-            bits = 31L * bits + Double.doubleToLongBits(getY());
-            this.hash = (int) (bits ^ (bits >> 32));
-        }
-        return this.hash;
-    }
-
-    @Override
-    public String toString() {
-        return "Point2D [x = " + getX() + ", y = " + getY() + "]";
+    public Point2D translate(final double dx, final double dy) {
+        return new Point2D(this.x+dx, this.y+dy);
     }
 }

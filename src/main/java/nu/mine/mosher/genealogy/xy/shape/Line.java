@@ -1,21 +1,10 @@
 package nu.mine.mosher.genealogy.xy.shape;
 
 public class Line {
-    private double startX;
-    private double startY;
-    private double endX;
-    private double endY;
-
-    public Line() {
-        this(0,0,0,0);
-    }
-
-    public Line(final double startX, final double startY, final double endX, final double endY) {
-        this.startX = startX;
-        this.startY = startY;
-        this.endX = endX;
-        this.endY = endY;
-    }
+    private double startX = 0;
+    private double startY = 0;
+    private double endX = 0;
+    private double endY = 0;
 
     public double getStartX() {
         return this.startX;
