@@ -1,5 +1,6 @@
 package nu.mine.mosher.genealogy.xy;
 
+import nu.mine.mosher.genealogy.MathUtils;
 import nu.mine.mosher.genealogy.xy.metrics.*;
 import nu.mine.mosher.genealogy.xy.shape.*;
 
@@ -17,7 +18,6 @@ public class Fami {
 
     private Line parentBar1;
     private Line parentBar2;
-//    private final List<StackPane> phantomPanes = new ArrayList<>(0);
 
     private Line descentBarParent;
     private Line descentBarMiddle;
@@ -36,16 +36,16 @@ public class Fami {
 
 
     public void setHusb(final Indi indi) {
-        husb = indi;
+        this.husb = indi;
     }
 
     public void setWife(final Indi indi) {
-        wife = indi;
+        this.wife = indi;
     }
 
     public void addChild(final Indi indi) {
         if (Objects.nonNull(indi)) {
-            rChild.add(indi);
+            this.rChild.add(indi);
         }
     }
 
@@ -91,103 +91,37 @@ public class Fami {
 */
 
     public void calc() {
-        if (husb == null && wife == null && rChild.isEmpty()) {
+        if (this.husb == null && this.wife == null && this.rChild.isEmpty()) {
             return;
         }
 
-        final Couple couple = new Couple(husb, wife);
+        final Couple couple = new Couple(this.husb, this.wife);
 
         // calculate "===" marriage/parent bar
-        if (couple.exists) {
-            parentBar1 = new Line();
-            parentBar1.setStartX(couple.pt1x);
-            parentBar1.setStartY(couple.pt1y - this.metricsFont.getMarriageBarHalfHeight());
-            parentBar1.setEndX(couple.pt2x);
-            parentBar1.setEndY(couple.pt2y - this.metricsFont.getMarriageBarHalfHeight());
-
-            parentBar2 = new Line();
-            parentBar2.setStartX(couple.pt1x);
-            parentBar2.setStartY(couple.pt1y + this.metricsFont.getMarriageBarHalfHeight());
-            parentBar2.setEndX(couple.pt2x);
-            parentBar2.setEndY(couple.pt2y + this.metricsFont.getMarriageBarHalfHeight());
+        if (couple.exists()) {
+            buildParentBars(couple);
         }
 
-        if (!rChild.isEmpty()) {
-            childsBar = new Line();
-            childsBar.setStartX(rChild.stream().mapToDouble(Indi::x).min().orElseThrow());
-            childsBar.setEndX(rChild.stream().mapToDouble(Indi::x).max().orElseThrow());
+        if (!this.rChild.isEmpty()) {
+            buildChildsBar(this.rChild);
+            buildChildBars(this.rChild, this.childsBar);
 
-            final double topChildPlaque = this.rChild.stream().map(Indi::getBounds).mapToDouble(Bounds::getMinY).min().orElseThrow();
-            childsBar.setY(topChildPlaque - this.metricsFont.getChildBarHeight());
-
-            rChildBar = new Line[rChild.size()];
-            for (int i = 0; i < rChildBar.length; i++) {
-                final var c = rChild.get(i);
-
-                rChildBar[i] = new Line();
-                rChildBar[i].setX(c.x());
-                rChildBar[i].setStartY(childsBar.getStartY());
-                rChildBar[i].setEndY(c.y());
-            }
-
-
-
-
-
-
-
-
+            // if parent(s) exist, draw descent bars (parent, middle, childs)
             if (couple.exists) {
-                final Point2D descentBarParentStart;
-                {
-                    // midpoint of child bar
-                    final var child = new Point2D((childsBar.getStartX() + childsBar.getEndX()) / 2.0D, childsBar.getStartY());
-                    // midpoints of parents
-                    final var p1 = new Point2D(couple.pt1x, couple.pt1y);
-                    final var p2 = new Point2D(couple.pt2x, couple.pt2y);
-                    // figure out which parent is closest to the child bar midpoint
-                    // and calculate the parent bar start point
-                    descentBarParentStart =
-                        child.distance(p1) < child.distance(p2) ?
-                        calcDescentBarParentStart(p1, p2) :
-                        calcDescentBarParentStart(p2, p1);
-                }
+                final Point2D descentBarParentStart = calcDescentBarParentStart(couple, this.childsBar);
+                final Point2D descentBarChildsStart = calcDescentBarChildsStart(descentBarParentStart, this.childsBar);
+                double descentBarMiddleY = calcDescentBarMiddleY(descentBarChildsStart, this.rChild.size());
 
-                final Point2D descentBarChildsStart;
-                {
-                    // minimum horiz distance of descentBarChildsStart from ends of childsBar
-                    final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D;
-                    final double x;
-                    if (childsBar.getEndX() - childsBar.getStartX() < minXend*2.0D) {
-                        x = (childsBar.getEndX() + childsBar.getStartX())/2.0D;
-                    } else {
-                        x = clamp(childsBar.getStartX()+minXend, descentBarParentStart.getX(), childsBar.getEndX()-minXend);
-                    }
-                    descentBarChildsStart = new Point2D(x, childsBar.getStartY());
-                }
-
-                // calculate height of middle descent bar (which is hidden if there's only one child)
-                double descentBarMiddleY = descentBarChildsStart.getY();
-                if (1 < rChild.size()) {
-                    descentBarMiddleY -= this.metricsFont.getChildBarHeight() / 2.0D;
-                };
-
-                descentBarChilds = new Line();
-                descentBarChilds.setStart(descentBarChildsStart);
-                descentBarChilds.setEndX(descentBarChilds.getStartX());
-                descentBarChilds.setEndY(descentBarMiddleY);
-
-                descentBarParent = new Line();
-                descentBarParent.setStart(descentBarParentStart);
-                descentBarParent.setEndX(descentBarParent.getStartX());
-                descentBarParent.setEndY(descentBarMiddleY);
-
-                descentBarMiddle = new Line();
-                descentBarMiddle.setStart(descentBarChilds.getEnd());
-                descentBarMiddle.setEnd(descentBarParent.getEnd());
+                buildDescentBars(descentBarParentStart, descentBarMiddleY, descentBarChildsStart);
             }
         }
     }
+
+
+
+
+
+
 
 
 
@@ -207,116 +141,162 @@ public class Fami {
 
 
 
+    private void buildParentBars(Couple couple) {
+        this.parentBar1 = new Line();
+        this.parentBar1.setStart(couple.pt1().translate(0D, -this.metricsFont.getMarriageBarHalfHeight()));
+        this.parentBar1.setEnd(couple.pt2().translate(0D, -this.metricsFont.getMarriageBarHalfHeight()));
 
+        this.parentBar2 = new Line();
+        this.parentBar2.setStart(couple.pt1().translate(0D, +this.metricsFont.getMarriageBarHalfHeight()));
+        this.parentBar2.setEnd(couple.pt2().translate(0D, +this.metricsFont.getMarriageBarHalfHeight()));
+    }
 
+    private void buildChildsBar(final List<Indi> rChild) {
+        // build childsBar (horizontal)
+
+        // x: left-most child to right-most child
+        this.childsBar = new Line();
+        this.childsBar.setStartX(rChild.stream().mapToDouble(Indi::x).min().orElseThrow());
+        this.childsBar.setEndX(rChild.stream().mapToDouble(Indi::x).max().orElseThrow());
+
+        // y: above the top-most child
+        final double topChildPlaque = rChild.stream().map(Indi::getBounds).mapToDouble(Bounds::getMinY).min().orElseThrow();
+        this.childsBar.setY(topChildPlaque - this.metricsFont.getChildBarHeight());
+    }
+
+    private void buildChildBars(final List<Indi> rChild, final Line childsBar) {
+        // build childBars (vertical, one per child)
+        this.rChildBar = new Line[rChild.size()];
+        for (int i = 0; i < rChild.size(); i++) {
+            final var c = rChild.get(i);
+
+            this.rChildBar[i] = new Line();
+            this.rChildBar[i].setStartX(c.x());
+            this.rChildBar[i].setStartY(childsBar.getStartY());
+            this.rChildBar[i].setEnd(c.center());
+        }
+    }
+
+    private Point2D calcDescentBarParentStart(final Couple couple, final Line childsBar) {
+        // midpoint of child bar
+        final var child = new Point2D((childsBar.getStartX() + childsBar.getEndX()) / 2.0D, childsBar.getStartY());
+
+        // Figure out which parent is closest to the child bar midpoint
+        // and calculate the parent bar start point, near that parent
+        return child.distance(couple.pt1()) < child.distance(couple.pt2()) ?
+            calcDescentBarParentStart(couple.pt1(), couple.pt2()) :
+            calcDescentBarParentStart(couple.pt2(), couple.pt1());
+    }
 
     // calculate the point on the (bottom) marriage bar where the descentBarParent starts
     private Point2D calcDescentBarParentStart(final Point2D ptNear, final Point2D ptFar) {
-        final var ptStart = ptNear.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
-        final var ptEnd = ptFar.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
-
-        // length of marriage bar
-        final double lenBar = Math.max(ptStart.distance(ptEnd), MIN_DISTANCE);
-
-        // calculate distance d along the length of the marriage bar,
-        // as a fraction of the full length, from the near
-        // parent towards the far parent, at which the descent line will start
-        // But, if the marriage bar is "short enough", then center the descent bar along it (50%)
+        // Calculate ratio r of distance d along the length of the marriage bar,
+        // to the full length, from the near
+        // parent towards the far parent, at which the descent line will start.
+        // But, if the marriage bar is "short enough", then center the descent bar along it (50%).
         // TODO I think this causes problems if one of the parents is missing:
         // the bar is short enough to qualify for the 50% rule, but that (always?)
         // (sometimes?) causes the descent line start point to be behind the plaque.
-        double d;
-        if (lenBar < this.metricsFont.maxWidthPlaque() * 4.0D) {
-            d = 0.5D;
+
+        final var ptStart = ptNear.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
+        final var ptEnd = ptFar.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
+        final double D = Math.max(ptStart.distance(ptEnd), MIN_DISTANCE);
+
+        final double d = this.metricsFont.maxWidthPlaque();
+
+        double r;
+        if (D < d * 4.0D) {
+            r = 1.0D/2.0D;
         } else {
-            d = (this.metricsFont.maxWidthPlaque() / lenBar);
+            r = d/D;
         }
 
         return new Point2D(
-            (1-d) * ptStart.getX() + d * ptEnd.getX(),
-            (1-d) * ptStart.getY() + d * ptEnd.getY());
+                (1-r) * ptStart.getX() + r * ptEnd.getX(),
+                (1-r) * ptStart.getY() + r * ptEnd.getY());
     }
 
-
-
-
-    private static double clamp(final double min, final double n, final double max) {
-        if (max < min) {
-            return n;
+    private Point2D calcDescentBarChildsStart(final Point2D descentBarParentStart, final Line childsBar) {
+        // Minimum horiz distance of descentBarChildsStart from ends of childsBar allowed.
+        // A visual nicety, it looks bad if the descent line is really close to an end of the childs bar.
+        final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D;
+        final double x;
+        if (childsBar.getEndX() - childsBar.getStartX() < minXend*2.0D) {
+            x = (childsBar.getEndX() + childsBar.getStartX())/2.0D;
+        } else {
+            x = MathUtils.clamp(childsBar.getStartX()+minXend, descentBarParentStart.getX(), childsBar.getEndX()-minXend);
         }
-        if (n < min) {
-            return min;
-        }
-        if (max < n) {
-            return max;
-        }
-        return n;
+        return new Point2D(x, childsBar.getStartY());
     }
 
+    private double calcDescentBarMiddleY(final Point2D descentBarChildsStart, final int nChild) {
+        // calculate height of middle descent bar (which is hidden if there's only one child)
+        double descentBarMiddleY = descentBarChildsStart.getY();
+        if (1 < nChild) {
+            descentBarMiddleY -= this.metricsFont.getChildBarHeight() / 2.0D;
+        }
+        ;
+        return descentBarMiddleY;
+    }
+
+    private void buildDescentBars(final Point2D descentBarParentStart, final double descentBarMiddleY, final Point2D descentBarChildsStart) {
+        this.descentBarParent = new Line();
+        this.descentBarParent.setStart(descentBarParentStart);
+        this.descentBarParent.setEndX(this.descentBarParent.getStartX());
+        this.descentBarParent.setEndY(descentBarMiddleY);
+
+        this.descentBarChilds = new Line();
+        this.descentBarChilds.setStart(descentBarChildsStart);
+        this.descentBarChilds.setEndX(this.descentBarChilds.getStartX());
+        this.descentBarChilds.setEndY(descentBarMiddleY);
+
+        this.descentBarMiddle = new Line();
+        this.descentBarMiddle.setStart(this.descentBarChilds.getEnd());
+        this.descentBarMiddle.setEnd(this.descentBarParent.getEnd());
+    }
 
 
 
 
 
     private class Couple {
-        public final double pt1x;
-        public final double pt1y;
-        public final double pt2x;
-        public final double pt2y;
-        public final boolean exists;
+        private final boolean exists;
+        private final Point2D pt1;
+        private final Point2D pt2;
 
-        public Couple(final Indi indi1, final Indi indi2) {
-            exists = !(indi1 == null && indi2 == null);
+        public Couple(final Indi husb, final Indi wife) {
+            this.exists = !(husb == null && wife == null);
 
-            if (!exists) {
-                // don't create TWO phantom parents
-                pt1x = pt1y = pt2x = pt2y = Double.NEGATIVE_INFINITY; // TODO ??? what to do here?
-            } else if (indi1 == null) {
-                pt2x = indi2.x();
-                pt2y = indi2.y();
-//                final Circle phantom = createPhantom();
-                pt1x = pt2x - Fami.this.metricsFont.maxWidthPlaque();
-                pt1y = pt2y;
-            } else if (indi2 == null) {
-                pt1x = indi1.x();
-                pt1y = indi1.y();
-//                final Circle phantom = createPhantom();
-                pt2x = pt1x + Fami.this.metricsFont.maxWidthPlaque();
-                pt2y = pt1y;
+            if (!this.exists) {
+                // should never happen
+                this.pt1 = Point2D.ZERO;
+                this.pt2 = Point2D.ZERO;
+            } else if (husb == null) {
+                // husband missing; place phantom to left of wife
+                this.pt2 = wife.center();
+                this.pt1 = this.pt2.translate(-Fami.this.metricsFont.maxWidthPlaque(), 0D);
+            } else if (wife == null) {
+                // wife missing; place phantom to right of husband
+                this.pt1 = husb.center();
+                this.pt2 = this.pt1.translate(+Fami.this.metricsFont.maxWidthPlaque(), 0D);
             } else {
-                pt1x = indi1.x();
-                pt1y = indi1.y();
-                pt2x = indi2.x();
-                pt2y = indi2.y();
+                // nominal case
+                // husband and wife both present (in either order left/right); no phantom
+                this.pt1 = husb.center();
+                this.pt2 = wife.center();
             }
         }
 
-        // TODO: Create phantoms? Can we make them as Indi objects, somehow?
-//        private Circle createPhantom() {
-//            final Circle phantom = new Circle(0D, Color.TRANSPARENT);
-//
-//            final Text textshape = new Text();
-//            textshape.setFill(metrics.colors().indiText());
-//            textshape.setFont(metrics.font());
-//            textshape.setTextAlignment(TextAlignment.CENTER);
-//            textshape.setText("\u00A0?\u00A0");
-//            new Scene(new Group(textshape));
-//            textshape.applyCss();
-//            final double inset = metrics.fontSize() / 2.0D;
-//            final double w = textshape.getLayoutBounds().getWidth() + inset * 2.0D;
-//            final double h = textshape.getLayoutBounds().getHeight() + inset * 2.0D;
-//
-//            final StackPane plaque = new StackPane();
-//            phantomPanes.add(plaque);
-//            plaque.setBackground(new Background(new BackgroundFill(metrics.colors().indiBg(), CORNERS, Insets.EMPTY)));
-//            plaque.setBorder(new Border(new BorderStroke(metrics.colors().indiBorder(), BorderStrokeStyle.SOLID, CORNERS, BorderWidths.DEFAULT)));
-//            StackPane.setMargin(textshape, new Insets(inset));
-//            plaque.getChildren().addAll(textshape);
-//
-//            plaque.layoutXProperty().bind(phantom.layoutXProperty().subtract(w / 2.0D));
-//            plaque.layoutYProperty().bind(phantom.layoutYProperty().subtract(h / 2.0D));
-//
-//            return phantom;
-//        }
+        public boolean exists() {
+            return this.exists;
+        }
+
+        public Point2D pt1() {
+            return this.pt1;
+        }
+
+        public Point2D pt2() {
+            return this.pt2;
+        }
     }
 }
