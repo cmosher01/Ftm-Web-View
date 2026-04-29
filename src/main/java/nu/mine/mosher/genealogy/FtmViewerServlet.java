@@ -1522,13 +1522,11 @@ public class FtmViewerServlet extends HttpServlet {
 
     public static Bounds calculateSvgSize(final Collection<Indi> indis) {
         return indis.stream().map(Indi::getBounds).reduce((b1, b2) -> {
-            final double xMin = Math.min(b1.getMinX(), b2.getMinX());
-            final double xMax = Math.max(b1.getMaxX(), b2.getMaxX());
-            final double width = Math.abs(xMax-xMin);
-            final double yMin = Math.min(b1.getMinY(), b2.getMinY());
-            final double yMax = Math.max(b1.getMaxY(), b2.getMaxY());
-            final double height = Math.abs(yMax-yMin);
-            return new Bounds(xMin, yMin, width, height);
+            final double left = Math.min(b1.left(), b2.left());
+            final double top = Math.min(b1.top(), b2.top());
+            final double right = Math.max(b1.right(), b2.right());
+            final double bottom = Math.max(b1.bottom(), b2.bottom());
+            return Bounds.withSides(left, top, right, bottom);
         }).get();
     }
 }

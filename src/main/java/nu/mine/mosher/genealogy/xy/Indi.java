@@ -20,7 +20,7 @@ public class Indi {
 
     private final int id; // FTM database primary key column
     private final UUID refn; // _ID fact (uuid)
-    private final Point2D xy;
+    private final Point xy;
     private final String nameGiven;
     private final String nameSur;
     private final HeadlessWordWrap wrapNameFull;
@@ -55,7 +55,7 @@ public class Indi {
     private Indi(final String xy, final int id, final UUID refn, final String name, final String lifespan, final String tagline, final boolean isRecent, final FontBasedMetrics metrics, double scaleFactor) {
         final String n = Optional.ofNullable(name).orElse("").strip();
 
-        final var tXY = alwaysCoord(xy).multiply(scaleFactor);
+        final var tXY = alwaysCoord(xy).scale(scaleFactor);
         final var tNameGiven = parseNameGiven(n);
         final var tNameSur = parseNameSur(n);
         final var tFullName = buildUnattributedFullName(tNameGiven, tNameSur);
@@ -95,7 +95,7 @@ public class Indi {
             metrics.lineHeight() * (this.wrapNameFull.nLines() + this.wrapLifespan.nLines()) +
             metrics.lineHeightSmall() * (Objects.isNull(this.wrapTagline) ? 0 : this.wrapTagline.nLines());
 
-        this.bounds = new Bounds(
+        this.bounds = Bounds.withPosSize(
             (tXY.x()-width/2D),
             ((tXY.y()-height/2D)+metrics.fontAscent()),
             width,
@@ -124,7 +124,7 @@ public class Indi {
 
 
 
-    public Point2D center() {
+    public Point center() {
         return this.xy;
     }
 
@@ -226,12 +226,12 @@ public class Indi {
         return n1.strip()+" ~ "+n2.strip();
     }
 
-    public static Point2D alwaysCoord(final String xy) {
+    public static Point alwaysCoord(final String xy) {
         final var opt = toCoord(xy);
-        return opt.orElse(Point2D.ZERO);
+        return opt.orElse(Point.ZERO);
     }
 
-    private static Optional<Point2D> toCoord(final String xy) {
+    private static Optional<Point> toCoord(final String xy) {
         if (Objects.isNull(xy) || xy.isEmpty()) {
             return empty();
         }
@@ -251,7 +251,7 @@ public class Indi {
             return empty();
         }
 
-        return Optional.of(new Point2D(x.get(), y.get()));
+        return Optional.of(Point.create(x.get(), y.get()));
     }
 
     private static Optional<Double> parseCoord(final String s) {

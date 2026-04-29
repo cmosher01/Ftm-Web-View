@@ -31,9 +31,9 @@ public class SvgBuilder {
         this.role = role;
 
         this.svg = this.doc.createElementNS(W3C_SVG_NS_URI, "svg");
-        final var viewport = bounds.inset(metrics.paddingChart());
-        this.svg.setAttribute("width", px(viewport.getWidth()));
-        this.svg.setAttribute("height", px(viewport.getHeight()));
+        final var viewport = bounds.outset(metrics.paddingChart());
+        this.svg.setAttribute("width", px(viewport.width()));
+        this.svg.setAttribute("height", px(viewport.height()));
         this.svg.setAttribute("viewBox", viewBox(viewport));
         parent.appendChild(svg);
     }
@@ -47,11 +47,11 @@ public class SvgBuilder {
 
         final var e = this.doc.createElementNS(W3C_SVG_NS_URI, "line");
 
-        e.setAttribute("x1", uc(line.getStartX()));
-        e.setAttribute("y1", uc(line.getStartY()));
+        e.setAttribute("x1", uc(line.p1().x()));
+        e.setAttribute("y1", uc(line.p1().y()));
 
-        e.setAttribute("x2", uc(line.getEndX()));
-        e.setAttribute("y2", uc(line.getEndY()));
+        e.setAttribute("x2", uc(line.p2().x()));
+        e.setAttribute("y2", uc(line.p2().y()));
 
         this.svg.appendChild(e);
     }
@@ -126,10 +126,10 @@ public class SvgBuilder {
         }
 
         text.setAttribute("class", "person");
-        text.setAttribute("x", uc(boundsText.getMinX()));
-        text.setAttribute("y", uc(boundsText.getMinY()));
-        text.setAttribute("data-width", uc(boundsText.getWidth()));
-        text.setAttribute("data-height", uc(boundsText.getHeight()));
+        text.setAttribute("x", uc(boundsText.x()));
+        text.setAttribute("y", uc(boundsText.y()));
+        text.setAttribute("data-width", uc(boundsText.width()));
+        text.setAttribute("data-height", uc(boundsText.height()));
         text.setAttribute("data-refn", indi.getRefn().toString());
         text.setAttribute("data-pkid", Integer.toString(indi.getId(), 10));
         text.setAttribute("data-mid-x", uc(indi.x()));
@@ -137,12 +137,12 @@ public class SvgBuilder {
 
         // Calculate bounds for rectangle based on bounds of the text.
         // Note: the FONT BASELINE is considered the top bound of the text area.
-        final Bounds boundsRect = boundsText.translate(0D, -this.metrics.fontAscent()).inset(metrics.paddingPlaque());
+        final Bounds boundsRect = boundsText.translate(0D, -this.metrics.fontAscent()).outset(metrics.paddingPlaque());
 
-        rect.setAttribute("x", uc(boundsRect.getMinX()));
-        rect.setAttribute("y", uc(boundsRect.getMinY()));
-        rect.setAttribute("width", uc(boundsRect.getWidth()));
-        rect.setAttribute("height", uc(boundsRect.getHeight()));
+        rect.setAttribute("x", uc(boundsRect.x()));
+        rect.setAttribute("y", uc(boundsRect.y()));
+        rect.setAttribute("width", uc(boundsRect.width()));
+        rect.setAttribute("height", uc(boundsRect.height()));
     }
 
     private void addTextLines(final HeadlessWordWrap wrap, final String s, final Element e, final double x, final double dy) {
@@ -227,13 +227,13 @@ public class SvgBuilder {
         return new HeadlessWordWrap(atrs, metrics.maxWidthPlaque());
     }
 
-    private static Bounds boundsRedacted(final FontBasedMetrics metrics, final Point2D center) {
+    private static Bounds boundsRedacted(final FontBasedMetrics metrics, final Point center) {
         final var wrap = wRedacted(metrics);
         final double width = wrap.width();
         final double x = center.x()-width/2.0D;
         final double height = metrics.lineHeight() * wrap.nLines();
-        final double y = (center.y()-height/2.0D)+ metrics.fontAscent();
-        return new Bounds(x, y, width, height);
+        final double y = (center.y()-height/2.0D) + metrics.fontAscent();
+        return Bounds.withPosSize(x, y, width, height);
     }
 
     private static String formatLink(final UUID refn, final String treename) {
@@ -251,6 +251,6 @@ public class SvgBuilder {
     }
 
     private static String viewBox(final Bounds bounds) {
-        return String.format("%.2f %.2f %.2f %.2f", bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
+        return String.format("%.2f %.2f %.2f %.2f", bounds.x(), bounds.y(), bounds.width(), bounds.height());
     }
 }

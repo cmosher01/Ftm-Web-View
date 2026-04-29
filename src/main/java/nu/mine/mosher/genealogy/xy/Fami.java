@@ -11,24 +11,26 @@ import java.util.*;
  * and then call calc(), and finally saveSvg()
  */
 public class Fami {
-    private static final double MIN_DISTANCE = 1.51D;
+    private static final double MIN_DISTANCE = 1.51D; // TODO move to metrics?
 
     private final FontBasedMetrics metricsFont;
     private final ChartMetrics metricsChart;
 
+    // TODO should we move parentbars (and associated calculation methods) to Couple class?
     private Indi husb;
     private Indi wife;
-    private final List<Indi> rChild = new ArrayList<>();
-
     private Line parentBar1;
     private Line parentBar2;
 
-    private Line descentBarParent;
-    private Line descentBarMiddle;
-    private Line descentBarChilds;
+    // TODO make a DescentBar class?
+    private Line.Vert descentBarParent;
+    private Line.Horz descentBarMiddle;
+    private Line.Vert descentBarChilds;
 
-    private Line childsBar;
-    private Line[] rChildBar;
+    // TODO make a Childs, or Children, or Brood class?
+    private final List<Indi> rChild = new ArrayList<>();
+    private Line.Horz childsBar;
+    private Line.Vert[] rChildBar;
 
 
 
@@ -60,18 +62,18 @@ public class Fami {
                     -----------------------------       <------
                   hu*sb                       wi*fe     metrics.marriageBarHalfHeight * 2
                     ------*----------------------       <------
-    descentBarParentStart |       parentBar2              ^
+     descentBarParentTop* |       parentBar2              ^
                           |
                           | < descentBarParent
                           |
                           |               v descentBarMiddle v
-    -descentBarMiddleY->  *---------------------------------------------*
+   -descentBarMiddleY-->  *---------------------------------------------*
                                                                         |
                                                                         | < descentBarChilds
                                                                         |
-                                                  descentBarChildsStart |       childsBar          v
+                                                descentBarChildsBottom* |       childsBar          v
                                                       +-----------+-----*-----------------+     <------
-                                           rChildBar: |[0]        |[1]                 [2]|     childBarHeight
+                                           rChildBar: |[0]        |[1]                 [2]|     childBarHeight, above rChildBar[1]
                        ----minimum-Y-of-children--->  |         +-|-+                     |     <------
                                                       |         |c*2|                   +-|-+     ^
                                                     +-|-+       +---+                   |c*3|
@@ -92,25 +94,24 @@ public class Fami {
     "rChildBar" is array of each child's vertical line from childBar down to (center of) child's plaque.
     "childHeight" is distance from the highest child's top (child c2 in this diagram), up to the childBar.
 
+    The childBars, descentBarParent, and descentBarChilds are always vertical.
+    The childsBar, and descentBarMiddle are always horizontal.
+    The marriage bar could be at any angle.
 */
 
     public void calc() {
         final var couple = new Couple(this.husb, this.wife);
-        if (couple.exists()) {
-            buildParentBars(couple);
-            // ^^^ sets: this.parentBar1, this.parentBar2
-        }
+        this.parentBar1 = couple.bar1();
+        this.parentBar2 = couple.bar2();
 
         if (!this.rChild.isEmpty()) {
-            buildChildsBar(this.rChild);
-            // ^^^ sets: this.childsBar
-            buildChildBars(this.rChild, this.childsBar);
-            // ^^^sets this.rChildBar
+            this.childsBar = buildChildsBar(this.rChild);
+            this.rChildBar = buildChildBars(this.rChild, this.childsBar);
 
-            if (couple.exists) {
-                final Point2D descentBarParentStart = calcDescentBarParentStart(couple, this.childsBar);
-                final Point2D descentBarChildsStart = calcDescentBarChildsStart(descentBarParentStart, this.childsBar);
-                final double descentBarMiddleY = calcDescentBarMiddleY(descentBarChildsStart, this.rChild.size());
+            if (couple.exists()) {
+                final Point descentBarParentStart = calcDescentBarParentStart(couple, this.childsBar.midpoint());
+                final Point descentBarChildsStart = calcDescentBarChildsStart(descentBarParentStart.x(), this.childsBar);
+                final double descentBarMiddleY = calcDescentBarMiddleY(descentBarChildsStart.y(), this.rChild.size());
 
                 buildDescentBars(descentBarParentStart, descentBarMiddleY, descentBarChildsStart);
                 // ^^^ sets: this.descentBarParent, this.descentBarMiddle, this.descentBarChilds
@@ -142,40 +143,27 @@ public class Fami {
 
 
 
-    private void buildParentBars(Couple couple) {
-        this.parentBar1 = new Line();
-        this.parentBar1.setStart(couple.pt1().translate(0D, -this.metricsFont.getMarriageBarHalfHeight()));
-        this.parentBar1.setEnd(couple.pt2().translate(0D, -this.metricsFont.getMarriageBarHalfHeight()));
 
-        this.parentBar2 = new Line();
-        this.parentBar2.setStart(couple.pt1().translate(0D, +this.metricsFont.getMarriageBarHalfHeight()));
-        this.parentBar2.setEnd(couple.pt2().translate(0D, +this.metricsFont.getMarriageBarHalfHeight()));
+
+
+    // build childsBar (horizontal)
+    // empty list will throw exception
+    private Line.Horz buildChildsBar(final List<Indi> rChild) {
+        // get top y, and min/max x values of child plaques
+        final var yTop = rChild.stream().map(Indi::getBounds).mapToDouble(Bounds::top).min().getAsDouble();
+        final var xMin = rChild.stream().mapToDouble(Indi::x).min().getAsDouble();
+        final var xMax = rChild.stream().mapToDouble(Indi::x).max().getAsDouble();
+        return Line.Horz.create(yTop, xMin, xMax).translate(-this.metricsFont.getChildBarHeight());
     }
 
-    private void buildChildsBar(final List<Indi> rChild) {
-        // build childsBar (horizontal)
-
-        // x: left-most child to right-most child
-        this.childsBar = new Line();
-        this.childsBar.setStartX(rChild.stream().mapToDouble(Indi::x).min().orElseThrow());
-        this.childsBar.setEndX(rChild.stream().mapToDouble(Indi::x).max().orElseThrow());
-
-        // y: above the top-most child
-        final double topChildPlaque = rChild.stream().map(Indi::getBounds).mapToDouble(Bounds::getMinY).min().orElseThrow();
-        this.childsBar.setY(topChildPlaque - this.metricsFont.getChildBarHeight());
-    }
-
-    private void buildChildBars(final List<Indi> rChild, final Line childsBar) {
-        // build childBars (vertical, one per child)
-        this.rChildBar = new Line[rChild.size()];
+    // build childBars (vertical, one per child)
+    private Line.Vert[] buildChildBars(final List<Indi> rChild, final Line.Horz childsBar) {
+        final var rChildBar = new Line.Vert[rChild.size()];
         for (int i = 0; i < rChild.size(); i++) {
-            final var c = rChild.get(i);
-
-            this.rChildBar[i] = new Line();
-            this.rChildBar[i].setStartX(c.x());
-            this.rChildBar[i].setStartY(childsBar.getStartY());
-            this.rChildBar[i].setEnd(c.center());
+            final var child = rChild.get(i);
+            rChildBar[i] = Line.Vert.create(child.x(), childsBar.y(), child.y());
         }
+        return rChildBar;
     }
 
     /**
@@ -185,26 +173,23 @@ public class Fami {
      * one of them (the one that is nearest to the children).
      *
      * @param couple the center points of the two parents
-     * @param childsBar the horizontal childsBar
+     * @param child the midpoint of the horizontal childsBar
      * @return descentBarParent starting point
      */
-    private Point2D calcDescentBarParentStart(final Couple couple, final Line childsBar) {
-        final var child = childsBar.midpoint();
-
+    private Point calcDescentBarParentStart(final Couple couple, final Point child) {
         // Figure out which parent is closest to the child bar midpoint
         // (and calculate the parent bar start point, near that parent)
-        return child.distance(couple.pt1()) < child.distance(couple.pt2()) ?
-            calcDescentBarParentStart(couple.pt1(), couple.pt2()) :
-            calcDescentBarParentStart(couple.pt2(), couple.pt1());
-    }
+        // note this is the ONLY place couple's pt1 and pt2 methods are used
+        final Point ptNear; //ptNear center point of nearest parent
+        final Point ptFar;  //ptFar center point of furthest parent
+        if (child.distance(couple.pt1()) < child.distance(couple.pt2())) {
+            ptNear = couple.pt1();
+            ptFar = couple.pt2();
+        } else {
+            ptNear = couple.pt2();
+            ptFar = couple.pt1();
+        }
 
-    /**
-     *
-     * @param ptNear center point of nearest parent
-     * @param ptFar center point of furthest parent
-     * @return descentBarParent starting point
-     */
-    private Point2D calcDescentBarParentStart(final Point2D ptNear, final Point2D ptFar) {
         // Calculate ratio r of distance d along the length of the marriage bar,
         // to the full length, from the near
         // parent towards the far parent, at which the descent line will start.
@@ -213,25 +198,40 @@ public class Fami {
         // the bar is short enough to qualify for the 50% rule, but that (always?)
         // (sometimes?) causes the descent line start point to be behind the plaque.
 
-        final var ptStart = ptNear.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
-        final var ptEnd = ptFar.translate(0D, this.metricsFont.getMarriageBarHalfHeight());
-        final double D = Math.max(ptStart.distance(ptEnd), MIN_DISTANCE);
+        // TODO this calculation of the lower marriage bar is redundant. Can we get the
+        // marriage bar from the Couple instead? Do we need to worry about which parent is
+        // visually on the left? Or which end of the line is the "start" and which is the "end".
+        // It's confusing, and needs to be clarified and simplified.
 
+        // We should be able to tell Couple the point (on the childsBar), and it should figure
+        // out which parent is closest, and using the bottom parent bar, figure out the
+        // descent bar start point.
+
+        final var bar = Line.create(ptNear, ptFar)
+            .translate(0D, this.metricsFont.getMarriageBarHalfHeight());
+
+        // total distance (use min to prevent division by zero later)
+        final double D = Math.max(bar.length(), MIN_DISTANCE);
+
+        // distance along line from starting point
         final double d = this.metricsFont.maxWidthPlaque();
 
-        double r;
-        if (D < d * 4.0D) {
-            r = 0.5D;
+        final double r; // ratio d to D
+        if (D < d * 4.0D) { // short marriage bar
+            r = 0.5D; // center between parents
         } else {
             r = d/D;
         }
 
-        return new Point2D(
-                (1-r) * ptStart.x() + r * ptEnd.x(),
-                (1-r) * ptStart.y() + r * ptEnd.y());
+        return bar.section(r);
     }
 
-    private Point2D calcDescentBarChildsStart(final Point2D descentBarParentStart, final Line childsBar) {
+    /*
+        Ideally we'd like to simply start at the childsBar midpoint, but this doesn't
+        always look visually appealing. We move the starting point towards the parent's
+        bar starting point, but don't get too close to the ends of the childsBar.
+     */
+    private Point calcDescentBarChildsStart(final double descentBarParentX, final Line.Horz childsBar) {
         // Minimum horiz distance of descentBarChildsStart from ends of childsBar allowed.
         // A visual nicety, it looks bad if the descent line is really close to an end of the childs bar.
         /*
@@ -240,11 +240,11 @@ public class Fami {
                |
                |
                |
-              +*----------+
-              |           |
-            +-|-+       +-|-+
-            | * |       | * |
-            +---+       +---+
+              +*--------------+
+              |               |
+            +-|-+           +-|-+
+            | * |           | * |
+            +---+           +---+
 
             but this instead:
               ===
@@ -252,50 +252,52 @@ public class Fami {
                |
                +---+
                    |
-              +----*------+
-              |           |
-            +-|-+       +-|-+
-            | * |       | * |
-            +---+       +---+
+              +----*----------+
+              |               |
+            +-|-+           +-|-+
+            | * |           | * |
+            +---+           +---+
+
+
+
+
+   minXend--->|   |<-             ->|   |<---minXend
+
+              +---[-----------------]---+   <---[allowable range for start point]
+              |                         |
+            +-|-+                     +-|-+
+            | * |                     | * |
+            +---+                     +---+
+
+            (but if bar is shorter than 2 * minXLen, just use the midpoint)
+
          */
 
         final double minXend = this.metricsChart.medianMinimumDistanceToNeighborScaled() / 4.0D; // TODO move this to ChartMetrics?
-        final double minXLen = minXend * 2.0D;
 
         final double x;
-        if (childsBar.length() < minXLen) {
+        if (childsBar.length() < minXend * 2.0D) {
             // corner case: the bar is too short to avoid the case of "too close to the end"
             x = childsBar.midpoint().x();
         } else {
-            x = MathUtils.clamp(childsBar.getStartX()+minXend, descentBarParentStart.x(), childsBar.getEndX()-minXend);
+            x = MathUtils.clamp(childsBar.p1().x()+minXend, descentBarParentX, childsBar.p2().x()-minXend);
         }
-        return new Point2D(x, childsBar.getStartY());
+        return Point.create(x, childsBar.y());
     }
 
-    private double calcDescentBarMiddleY(final Point2D descentBarChildsStart, final int nChild) {
+    private double calcDescentBarMiddleY(final double descentBarChildsY, final int nChild) {
         // calculate height of middle descent bar (which is hidden if there's only one child)
-        double descentBarMiddleY = descentBarChildsStart.y();
+        double descentBarMiddleY = descentBarChildsY;
         if (1 < nChild) {
             descentBarMiddleY -= this.metricsFont.getChildBarHeight() / 2.0D;
         }
-        ;
         return descentBarMiddleY;
     }
 
-    private void buildDescentBars(final Point2D descentBarParentStart, final double descentBarMiddleY, final Point2D descentBarChildsStart) {
-        this.descentBarParent = new Line();
-        this.descentBarParent.setStart(descentBarParentStart);
-        this.descentBarParent.setEndX(this.descentBarParent.getStartX());
-        this.descentBarParent.setEndY(descentBarMiddleY);
-
-        this.descentBarChilds = new Line();
-        this.descentBarChilds.setStart(descentBarChildsStart);
-        this.descentBarChilds.setEndX(this.descentBarChilds.getStartX());
-        this.descentBarChilds.setEndY(descentBarMiddleY);
-
-        this.descentBarMiddle = new Line();
-        this.descentBarMiddle.setStart(this.descentBarChilds.getEnd());
-        this.descentBarMiddle.setEnd(this.descentBarParent.getEnd());
+    private void buildDescentBars(final Point descentBarParentTop, final double descentBarMiddleY, final Point descentBarChildsBtm) {
+        this.descentBarParent = Line.Vert.create(descentBarParentTop.x(), descentBarParentTop.y(), descentBarMiddleY);
+        this.descentBarChilds = Line.Vert.create(descentBarChildsBtm.x(), descentBarChildsBtm.y(), descentBarMiddleY);
+        this.descentBarMiddle = Line.Horz.create(descentBarMiddleY, this.descentBarParent.x(), this.descentBarChilds.x());
     }
 
 
@@ -311,30 +313,32 @@ public class Fami {
      * TODO Can we display a "?" plaque for a phantom?
      */
     private class Couple {
+        private final double BARLINE_DELTA_Y = Fami.this.metricsFont.getMarriageBarHalfHeight();
+        private final double PHANTOM_DELTA_X = Fami.this.metricsFont.maxWidthPlaque();
         private final boolean exists;
-        private final Point2D pt1;
-        private final Point2D pt2;
+        private final Point ptHusb;
+        private final Point ptWife;
 
         public Couple(final Indi husb, final Indi wife) {
             this.exists = !(husb == null && wife == null);
 
             if (!this.exists) {
                 // these points should never be used anywhere
-                this.pt1 = Point2D.ZERO;
-                this.pt2 = Point2D.ZERO;
+                this.ptHusb = Point.ZERO;
+                this.ptWife = Point.ZERO;
             } else if (husb == null) {
                 // husband missing; place phantom to left of wife
-                this.pt2 = wife.center();
-                this.pt1 = this.pt2.translate(-Fami.this.metricsFont.maxWidthPlaque(), 0D);
+                this.ptWife = wife.center();
+                this.ptHusb = this.ptWife.translate(-PHANTOM_DELTA_X, 0D);
             } else if (wife == null) {
                 // wife missing; place phantom to right of husband
-                this.pt1 = husb.center();
-                this.pt2 = this.pt1.translate(+Fami.this.metricsFont.maxWidthPlaque(), 0D);
+                this.ptHusb = husb.center();
+                this.ptWife = this.ptHusb.translate(+PHANTOM_DELTA_X, 0D);
             } else {
                 // nominal case
                 // husband and wife both present (in either order left/right); no phantom
-                this.pt1 = husb.center();
-                this.pt2 = wife.center();
+                this.ptHusb = husb.center();
+                this.ptWife = wife.center();
             }
         }
 
@@ -342,12 +346,27 @@ public class Fami {
             return this.exists;
         }
 
-        public Point2D pt1() {
-            return this.pt1;
+        public Point pt1() {
+            return this.ptHusb;
         }
 
-        public Point2D pt2() {
-            return this.pt2;
+        public Point pt2() {
+            return this.ptWife;
+        }
+
+        public Line bar1() {
+            return bar(-BARLINE_DELTA_Y);
+        }
+
+        public Line bar2() {
+            return bar(+BARLINE_DELTA_Y);
+        }
+
+        private Line bar(final double dy) {
+            if (!this.exists) {
+                return null;
+            }
+           return Line.create(this.ptHusb, this.ptWife).translate(0D, dy);
         }
     }
 }

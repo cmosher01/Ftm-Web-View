@@ -2,7 +2,7 @@ package nu.mine.mosher.genealogy.xy.metrics;
 
 import nu.mine.mosher.genealogy.IndexedPerson;
 import nu.mine.mosher.genealogy.xy.Indi;
-import nu.mine.mosher.genealogy.xy.shape.Point2D;
+import nu.mine.mosher.genealogy.xy.shape.Point;
 
 import java.util.*;
 
@@ -38,14 +38,14 @@ public final class ChartMetrics {
         final var points = indis.stream()
                 .map(IndexedPerson::xy)
                 .map(Indi::alwaysCoord)
-                .filter(p -> !p.equals(Point2D.ZERO))
+                .filter(p -> !p.equals(Point.ZERO))
                 .toList();
 
         final var minimums = calculateMinimumDistancesToNeighbors(points);
         return calculateMedian(minimums);
     }
 
-    private static List<Double> calculateMinimumDistancesToNeighbors(final List<Point2D> points) {
+    private static List<Double> calculateMinimumDistancesToNeighbors(final List<Point> points) {
         final var minimums = new ArrayList<Double>(points.size());
         for (int i = 0; i < points.size(); ++i) {
             double min = Double.POSITIVE_INFINITY;

@@ -1,10 +1,12 @@
 package nu.mine.mosher.genealogy.xy.shape;
 
-public class Insets {
+public final class Insets {
     private final double left;
     private final double right;
     private final double top;
     private final double bottom;
+
+
 
     public Insets(final double left, final double right, final double top, final double bottom) {
         this.left = left;
@@ -17,19 +19,21 @@ public class Insets {
         this(insets, insets, insets, insets);
     }
 
-    public double getLeft() {
+
+
+    public double left() {
         return this.left;
     }
 
-    public double getTop() {
+    public double top() {
         return this.top;
     }
 
-    public double getRight() {
+    public double right() {
         return this.right;
     }
 
-    public double getBottom() {
+    public double bottom() {
         return this.bottom;
     }
 }
