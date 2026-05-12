@@ -235,7 +235,7 @@ public class FtmViewerServlet extends HttpServlet {
                 if (getRequestedChartPage(request)) {
                     dom = Optional.of(pageChart(authorizer, indexedDatabase.get(), now));
                 } else {
-                    dom = Optional.of(pageIndexPeople(authorizer, indexedDatabase.get(), now, getRequestedAllowChart(request)));
+                    dom = Optional.of(pageIndexPeople(authorizer, indexedDatabase.get(), now));
                 }
             } else {
                 LOG.info("tree does not currently exist");
@@ -373,27 +373,6 @@ public class FtmViewerServlet extends HttpServlet {
             }
         }
         return Optional.empty();
-    }
-
-    private static final boolean DEFAULT_ALLOW_CHART = false; // TODO change to TRUE to release drop-line chart feature
-
-    private static boolean getRequestedAllowChart(final HttpServletRequest request) {
-        boolean ret = DEFAULT_ALLOW_CHART;
-
-        final Optional<String> optValue = Optional.ofNullable(request.getParameter("allowChart"));
-        if (optValue.isPresent()) {
-            try {
-                ret = Boolean.parseBoolean(optValue.get());
-            } catch (final Throwable e) {
-                LOG.warn("Invalid format for allowChart query parameter: {}", optValue.get());
-            }
-        }
-
-        if (ret) {
-            LOG.warn("Found allowChart request parameter set to TRUE.");
-        }
-
-        return ret;
     }
 
     private static boolean getRequestedChartPage(final HttpServletRequest request) {
@@ -558,7 +537,7 @@ public class FtmViewerServlet extends HttpServlet {
         final var switchIndexChart = e(header, "div");
         {
             final var a = e(switchIndexChart, "a");
-            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=false&allowChart=true");
+            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=false");
             a.setTextContent("<index>");
         }
         {
@@ -567,7 +546,7 @@ public class FtmViewerServlet extends HttpServlet {
         }
         {
             final var a = e(switchIndexChart, "a");
-            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=true&allowChart=true");
+            a.setAttribute("href", "?tree="+indexedDatabase.file().getName()+"&chart=true");
             a.setTextContent("<chart>");
         }
 
@@ -593,7 +572,7 @@ public class FtmViewerServlet extends HttpServlet {
         return dom;
     }
 
-    private Document pageIndexPeople(RbacAuthorizer role, final IndexedDatabase indexedDatabase, ZonedDateTime now, boolean allowChart) throws ParserConfigurationException, SQLException, URISyntaxException {
+    private Document pageIndexPeople(final RbacAuthorizer role, final IndexedDatabase indexedDatabase, final ZonedDateTime now) throws ParserConfigurationException, SQLException, URISyntaxException {
         final List<IndexedPerson> list;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
             final PersonIndexMap map = session.getMapper(PersonIndexMap.class);
@@ -637,22 +616,20 @@ public class FtmViewerServlet extends HttpServlet {
         h1.setTextContent(indexedDatabase.file().getName());
 
 
-        if (allowChart) {
-            final var switchIndexChart = e(header, "div");
-            {
-                final var a = e(switchIndexChart, "a");
-                a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=false&allowChart=true");
-                a.setTextContent("<index>");
-            }
-            {
-                final var spDates = e(switchIndexChart, "span");
-                spDates.setTextContent(" ");
-            }
-            {
-                final var a = e(switchIndexChart, "a");
-                a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=true&allowChart=true");
-                a.setTextContent("<chart>");
-            }
+        final var switchIndexChart = e(header, "div");
+        {
+            final var a = e(switchIndexChart, "a");
+            a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=false");
+            a.setTextContent("<index>");
+        }
+        {
+            final var spDates = e(switchIndexChart, "span");
+            spDates.setTextContent(" ");
+        }
+        {
+            final var a = e(switchIndexChart, "a");
+            a.setAttribute("href", "?tree=" + indexedDatabase.file().getName() + "&chart=true");
+            a.setTextContent("<chart>");
         }
 
         e(body, "hr");
