@@ -1,6 +1,5 @@
 package nu.mine.mosher.genealogy.xy;
 
-import nu.mine.mosher.genealogy.MathUtils;
 import nu.mine.mosher.genealogy.xy.metrics.*;
 import nu.mine.mosher.genealogy.xy.shape.*;
 
@@ -280,7 +279,8 @@ public class Fami {
             // corner case: the bar is too short to avoid the case of "too close to the end"
             x = childsBar.midpoint().x();
         } else {
-            x = MathUtils.clamp(childsBar.p1().x()+minXend, descentBarParentX, childsBar.p2().x()-minXend);
+            // clamp the X of the descent bar to between (left end + offset) and (right end - offset)
+            x = Math.clamp(descentBarParentX, childsBar.p1().x()+minXend, childsBar.p2().x()-minXend);
         }
         return Point.create(x, childsBar.y());
     }

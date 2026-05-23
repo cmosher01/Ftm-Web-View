@@ -116,6 +116,62 @@ public class SvgBuilder {
         }
     }
 
+    /*
+Empirical measurements, observing rendered image on screen, measured with a ruler:
+
+
+- 112.0 bottom of stroke at top of rectangle
+                                                   19.8 => 12.9
+   92.2 top of ascent       \
+Hy 83.0 baseline             } 12.2 => 7.95 (8 pt font)    (dy set to 11)
+   80.0 bottom of descent   /
+                             }  5.0 => 3.26
+   75.0 a
+   66.0 b                  dy ~17.5 => 11.4                (dy set to 11)
+  [62.0 d]
+
+   55.4 a
+() 48.9 b
+  [46.9 ? d]
+
+   43.8 a
+Be 36.7 b
+  [34.7 d]
+
+89 30.8 a  \
+   23.9 b   } 8.9 = 5.8 (6 pt font)
+  [21.9 d] /
+                                                      21.9 = 14.27
+-   0.0 top of stroke at bottom of rectangle
+
+
+text height reported as 50.12 px
+rect height set to 73.00 reported as 74.03
+rect (default) stroke size 1 px
+
+112.0 => 73.00: conversion factor = 1.534
+
+
+rect y set to 862038.70
+text y set to 862046.70
+              ---------
+         diff      8.00 (value of person insets)
+
+8pt a 9.8 => 6.39
+    d 3.0 => 1.96
+             ----
+             8.34
+
+analysis:
+
+top padding is set to 8 px, dy of first line is set to 11 px = total 19 px
+visible distance from bottom of top stroke to top of first line ~= 13 px
+distance from bottom of top stroke to baseline if top line ~= 19 px
+THEREFORE the "y" value on the svg <text> element represents
+the y value of the BASELINE of the top line of text
+     */
+
+
     private void setBoundsAttributes(final Indi indi, final Element rect, final Element text) throws SQLException {
         final Bounds boundsText;
 

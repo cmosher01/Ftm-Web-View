@@ -1,7 +1,7 @@
 /*
     Ftm Web View
     Web server for Family Tree Maker (decrypted) databases.
-    Copyright © 2021-2022, by Christopher Alan Mosher
+    Copyright © 2021-2026, by Christopher Alan Mosher, New York, New York, USA
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -991,6 +991,7 @@ public class FtmViewerServlet extends HttpServlet {
         final List<Event> events;
         final Map<Integer,EventWithSources> mapEventSources;
         try (final Connection conn = openConnectionFor(indexedDatabase); final SqlSession session = openSessionFor(conn)) {
+            // TODO fix events sorting (burial with no date should always sort greater than death)
             final EventsMap map = session.getMapper(EventsMap.class);
             events = map.select(link);
             mapEventSources =
@@ -1049,6 +1050,7 @@ public class FtmViewerServlet extends HttpServlet {
                     a.setTextContent(event.description());
                 } else {
                     // TODO if event description is just a url, make it a link, or can we make it a citation?
+                    // TODO make "long" notes into citations
                     spanDesc.setTextContent(event.description());
                 }
             }
