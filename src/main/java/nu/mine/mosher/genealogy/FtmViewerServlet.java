@@ -1027,7 +1027,7 @@ public class FtmViewerServlet extends HttpServlet {
             Styles.add(spanDate, getEventHighlight(event));
 
             final Element tdPlace = e(tr, "td");
-            final Place place = event.place();
+            final FtmPlace place = event.place();
             if (place.isBlank()) {
                 ifPresent(null, tdPlace);
             } else {
@@ -1078,7 +1078,7 @@ public class FtmViewerServlet extends HttpServlet {
     }
 
     private static void abbreviatePlacesOf(final List<Event> events) {
-        final List<List<String>> places = events.stream().map(Event::place).map(Place::getHierarchy).toList();
+        final List<List<String>> places = events.stream().map(Event::place).map(FtmPlace::getHierarchy).toList();
         LOG.debug("extracted places: {}", places);
         final List<List<String>> abbrevs = new PlaceListAbbrev().abbrev(places);
         if (abbrevs.size() != places.size()) {
@@ -1086,9 +1086,9 @@ public class FtmViewerServlet extends HttpServlet {
             return;
         }
 
-        Place prev = null;
+        FtmPlace prev = null;
         for (int i = 0; i < abbrevs.size(); ++i) {
-            final Place place = events.get(i).place();
+            final FtmPlace place = events.get(i).place();
             if (place.equals(prev) && !place.isBlank()) {
                 place.setDitto();
             } else {

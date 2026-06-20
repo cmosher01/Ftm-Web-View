@@ -13,11 +13,12 @@ import static nu.mine.mosher.genealogy.XmlUtils.e;
 
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public class Place {
-    private static final Logger LOG =  LoggerFactory.getLogger(Place.class);
+public class FtmPlace {
+    private static final Logger LOG =  LoggerFactory.getLogger(FtmPlace.class);
 
     private final List<String> hierarchy;
     private final String description;
+    private final boolean resolved;
 
     private final Optional<GeoCoords> coords;
     private final boolean neg; // TODO what is this flag for?
@@ -26,19 +27,19 @@ public class Place {
     private String abbreviatedOverride;
     private boolean ditto;
 
-    private Place(List<String> hierarchy, String description, Optional<GeoCoords> coords, boolean neg, int codeStandard) {
+    private FtmPlace(final List<String> hierarchy, final String description, final boolean resolved, final Optional<GeoCoords> coords, final boolean neg, final int codeStandard) {
         this.hierarchy = hierarchy;
         this.description = description;
         this.coords = coords;
         this.neg = neg;
         this.codeStandard = codeStandard;
         this.abbreviatedOverride = "";
-
+        this.resolved = resolved;
     }
 
     @Override
     public String toString() {
-        return "Place{" +
+        return "FtmPlace{" +
             "hierarchy=[" + dumpHierarchy() + ']' +
             ", description=\"" + description + '\"' +
             ", codeStandard=" + codeStandard +
@@ -63,14 +64,14 @@ public class Place {
         return this.description;
     }
 
-    public static Place fromFtmPlace(final String s) {
-        final Place place = new Builder(s).build();
+    public static FtmPlace fromFtmPlace(final String s) {
+        final FtmPlace place = new Builder(s).build();
         LOG.debug("FtmPlace=\"{}\" --> \"{}\"", s, place);
         return place;
     }
 
-    public static Place empty() {
-        return new Place(new ArrayList<>(), "", Optional.empty(), false, 0);
+    public static FtmPlace empty() {
+        return new FtmPlace(new ArrayList<>(), "", false, Optional.empty(), false, 0);
     }
 
     public boolean isBlank() {
@@ -97,9 +98,13 @@ public class Place {
         this.abbreviatedOverride = String.join(", ", parts);
     }
 
+    public boolean isResolved() {
+        return this.resolved;
+    }
+
     @Override
     public boolean equals(final Object object) {
-        if (!(object instanceof Place that)) {
+        if (!(object instanceof FtmPlace that)) {
             return false;
         }
         return this.hierarchy.equals(that.hierarchy);
@@ -130,10 +135,11 @@ public class Place {
         private Optional<GeoCoords> coords = Optional.empty();
         private boolean neg;
         private int codeStandard;
-        private final  List<String> hierarchy = new ArrayList<>(5);
+        private final List<String> hierarchy = new ArrayList<>(5);
+        private boolean resolved;
 
         public Builder(final String description) {
-            if (description.isBlank()) {
+            if (Objects.isNull(description) || description.isBlank()) {
                 this.description = "";
             } else {
                 // default value if any parsing fails:
@@ -147,8 +153,8 @@ public class Place {
             }
         }
 
-        public Place build() {
-            return new Place(hierarchy, description, coords, neg, codeStandard);
+        public FtmPlace build() {
+            return new FtmPlace(hierarchy, description, resolved, coords, neg, codeStandard);
         }
 
 
@@ -224,6 +230,7 @@ public class Place {
                     setCoords(withSlash.group("lat"), withSlash.group("lon"));
                     setCode(withSlash.group("code"));
 
+                    this.resolved = true;
                     final Matcher hier = FTM_PLACE_HIERARCHICAL.matcher(withSlash.group("name"));
                     if (hier.matches()) {
                         parseAndAddHierarchy(hier.group("p0"));
@@ -239,6 +246,7 @@ public class Place {
                     return;
                 }
             }
+            //-------------------------------------------------------
         }
 
         private void buildDescription() {
@@ -251,7 +259,7 @@ public class Place {
                 forEach(this::addHierarchy);
         }
 
-        private void addHierarchy(String part) {
+        private void addHierarchy(final String part) {
             if (!part.isBlank()) {
                 this.hierarchy.add(part);
             }

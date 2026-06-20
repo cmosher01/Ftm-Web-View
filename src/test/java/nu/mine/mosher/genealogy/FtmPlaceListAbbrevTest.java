@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 
-public class PlaceListAbbrevTest {
+public class FtmPlaceListAbbrevTest {
     @Test
     void nominal() {
         final List<String> w = h("Wilmington, New Castle, Delaware, USA");

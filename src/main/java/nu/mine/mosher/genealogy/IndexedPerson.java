@@ -15,8 +15,8 @@ public record IndexedPerson(
     String xy,
     String gedcomname,
     String sex,
-    Place birthplace,
-    Place anyplace
+    FtmPlace birthplace,
+    FtmPlace anyplace
 ) implements Comparable<IndexedPerson> {
     @NonNull
     public static IndexedPerson from(final UUID uuidPerson) {

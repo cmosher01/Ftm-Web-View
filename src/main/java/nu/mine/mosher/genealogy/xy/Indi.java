@@ -111,6 +111,7 @@ public class Indi {
         this.isRecent = isRecent;
     }
 
+    // TODO need to better account for "given /sur/ given" situation (see gedcom-xy-editor: GedcomIndiName)
     private static String buildUnattributedFullName(final String nameGiven, final String nameSur) {
         final var s = new StringBuilder(nameGiven.length()+1+nameSur.length());
         s.append(nameGiven);
