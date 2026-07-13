@@ -1489,8 +1489,14 @@ public class FtmViewerServlet extends HttpServlet {
         final String sdirDbs = Optional.ofNullable(System.getenv("ftm_dir")).orElse("/srv");
         final Path dirDbs = Path.of(sdirDbs).toAbsolutePath().normalize();
         LOG.debug("Loading FTM data from trees in this directory: {}", dirDbs);
+
+        final var optDbs = Optional.ofNullable(dirDbs.toFile().listFiles(ftmDbFilter()));
+        if (optDbs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         return
-            Arrays.stream(dirDbs.toFile().listFiles(ftmDbFilter())).
+            Arrays.stream(optDbs.get()).
             map(IndexedDatabase::new).
             collect(Collectors.toList());
     }

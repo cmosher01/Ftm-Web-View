@@ -15,6 +15,7 @@ public record IndexedPerson(
     String xy,
     String gedcomname,
     String sex,
+    // TODO add Place.DisplayName
     FtmPlace birthplace,
     FtmPlace anyplace
 ) implements Comparable<IndexedPerson> {

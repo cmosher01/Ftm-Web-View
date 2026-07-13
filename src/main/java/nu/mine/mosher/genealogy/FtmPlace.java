@@ -27,6 +27,7 @@ public class FtmPlace {
     private String abbreviatedOverride;
     private boolean ditto;
 
+    // TODO add Place.DisplayName
     private FtmPlace(final List<String> hierarchy, final String description, final boolean resolved, final Optional<GeoCoords> coords, final boolean neg, final int codeStandard) {
         this.hierarchy = hierarchy;
         this.description = description;
@@ -182,6 +183,7 @@ public class FtmPlace {
             / [p0] / [p1] / [p2] / [p3] / [p4] / ...
 
         where p0 through p4 are place names in a hierarchy.
+        p0 is actually what's in the "Place detail" field on the "Resolve Place Name" dialog
         The parts of "resolved" places are at the end.
 
 
@@ -192,21 +194,41 @@ public class FtmPlace {
          */
 
 
+
+
+
+
         /*
-                /Hamilton, Madison, New York, USA|/0.7474722/-1.318502
-                /Place, Name w/some slash/es | and, vertical | bars|//
+            /////England/3251/0.917865/-0.02550045
+            /////USA/2//
+
+            ////New York/USA/35/0.7461816/-1.295425
+
+            ///Steuben/New York/USA/2794/0.73765/-1.35063
+            ///Yorkshire//England/5292/0.9425181/-0.01923769
+
+            //Orangetown/Rockland/New York/USA/11603/0.716503/-1.290635
+            //Stainton (near Middlesbrough)/Yorkshire//England/1701400/0.9515654/-0.0219476
+            //Hartlepool/Durham//England/83443/0.9544527/-0.02116212
+
+            /Gainsborough Studios, 222 Central Park South/Manhattan/New York/New York/USA/-11127/0.7115228/-1.291202
+
+            /New Granada|//
+            /Curaçao|/0.2129302/-1.204277
+            /Hamilton, Madison, New York, USA|/0.7474722/-1.318502
+            /Place, Name w/some slash/es | and, vertical | bars|//
          */
         private static final Pattern FTM_PLACE_WITH_VERTICALBAR = Pattern.compile("^/(?<name>.*)\\|(?<code>[^/|]*?)/(?<lat>[^/|]*?)/(?<lon>[^/|]*?)$");
 
         /*
-                /Room 401, Flint Hall, Syracuse University/Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
-                /another place / with slashes | and  bars, but, resolved, in///Connecticut/USA/-9//
+            /Room 401, Flint Hall, Syracuse University/Syracuse/Onondaga/New York/USA/11269/0.7513314/-1.329023
+            /another place / with slashes | and  bars, but, resolved, in///Connecticut/USA/-9//
 
             Use the first capture group ("name") from the first pattern as input to the second pattern:
         */
         private static final Pattern FTM_PLACE_WITH_SLASH = Pattern.compile("^/(?<name>.*)/(?<code>[^/|]*?)/(?<lat>[^/|]*?)/(?<lon>[^/|]*?)$");
-
         private static final Pattern FTM_PLACE_HIERARCHICAL = Pattern.compile("^(?<p0>.*)/(?<p1>[^/|]*?)/(?<p2>[^/|]*?)/(?<p3>[^/|]*?)/(?<p4>[^/|]*?)$");
+
 
 
         private void parseDescription(final String description) {
@@ -254,6 +276,10 @@ public class FtmPlace {
         }
 
         private void parseAndAddHierarchy(final String csvParts) {
+            // TODO use commons-csv to parse this (see test)
+            // We need to determine what parsing we should do:
+            // handle open/close/nested? for any/all of these: (x) [x] {x} <x> "x" 'x'
+            // the only? advantage would be to mask commas that would otherwise be treated as delimiters
             Arrays.stream(csvParts.split(",")).
                 map(String::trim).
                 forEach(this::addHierarchy);

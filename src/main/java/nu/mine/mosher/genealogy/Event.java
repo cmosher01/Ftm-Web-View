@@ -7,6 +7,7 @@ import java.util.*;
 
 
 // TODO style Name
+// TODO add Place.DisplayName
 public record Event(int pkid, Day date, FtmPlace place, FtmFactTypeTag tag, String type, String description) implements Comparable<Event> {
     private static final Logger LOG =  LoggerFactory.getLogger(Event.class);
 

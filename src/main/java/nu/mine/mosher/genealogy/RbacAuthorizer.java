@@ -59,22 +59,22 @@ public class RbacAuthorizer {
                 // never-before seen Google ID
                 if (0 < idUserOfEmail) {
                     // email was here before (we don't have a record of their Google ID)
-                    String gid = fetchUserGid(idUserOfEmail);
+                    final String gid = fetchUserGid(idUserOfEmail);
                     if (!gid.isEmpty()) {
                         // email is already attached to a different Google ID
                         this.id = 0;
                         this.email = "guest";
                     } else {
                         // user record attached to email has no gid, so update it now
-                        updateUserGid(idUserOfEmail, gid);
+                        updateUserGid(idUserOfEmail, subject.get().gid());
                         this.id = idUserOfEmail;
                         this.email = subject.get().email();
                     }
                 } else {
                     // never-before seen email, so add a new user record and associated email
                     this.id = insertUser(subject.get().gid());
-                    insertEmail(subject.get().email(), this.id, now);
                     this.email = subject.get().email();
+                    insertEmail(this.email, this.id, now);
                 }
             }
         }
@@ -121,7 +121,9 @@ public class RbacAuthorizer {
             statement.setInt(1, idUser);
             try (final var resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    return resultSet.getString(1);
+                    if (!resultSet.wasNull()) {
+                        return resultSet.getString(1);
+                    }
                 }
             }
         }

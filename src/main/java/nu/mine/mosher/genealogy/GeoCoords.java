@@ -4,7 +4,7 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.slf4j.*;
 
 import java.net.URL;
-import java.util.Optional;
+import java.util.*;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public record GeoCoords(
@@ -24,6 +24,7 @@ public record GeoCoords(
         if (oddLat.isEmpty()) {
             return Optional.empty();
         }
+
         final Optional<Double> odrLon = parseRadians(radLon);
         if (odrLon.isEmpty()) {
             return Optional.empty();
@@ -33,21 +34,17 @@ public record GeoCoords(
             return Optional.empty();
         }
 
-        final Optional<URL> ou = buildUrl(oddLat, oddLon);
-        if (ou.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new GeoCoords(odrLat.get(), odrLon.get(), oddLat.get(), oddLon.get(), ou.get()));
+        final Optional<URL> ou = buildUrl(oddLat.get(), oddLon.get());
+        return ou.map(url -> new GeoCoords(odrLat.get(), odrLon.get(), oddLat.get(), oddLon.get(), url));
     }
 
-    private static Optional<URL> buildUrl(Optional<Double> oddLat, Optional<Double> oddLon) {
+    private static Optional<URL> buildUrl(final double oddLat, final double oddLon) {
         /*
          *      https://www.google.com/maps/search/?api=1&query=-33.712206,150.311941
          */
 
         try {
-            final String pair = String.format("%f,%f", oddLat.get(), oddLon.get());
+            final String pair = String.format("%f,%f", oddLat, oddLon);
             return Optional.of(
                 new URIBuilder().
                 setScheme("https").
@@ -64,20 +61,21 @@ public record GeoCoords(
     }
 
     private static Optional<Double> degreesFromRadians(final Optional<Double> radians) {
-        if (radians.isPresent()) {
-            final double r = radians.get();
-            final double d = (180.0d * r) / Math.PI;
-            return Optional.of(d);
-        } else {
-            return Optional.empty();
-        }
+        /*
+        I performed extensive testing of coordinates all around the globe.
+        I pinpointed landmarks in FTM, using the map on the "Places" tab.
+        And then I viewed all of them here in Ftm-Web-View, linking to Google Maps,
+        and they were all identically displayed on Google Maps as they were on FTM's map.
+         */
+        return radians.map(Math::toDegrees);
     }
+
     private static Optional<Double> parseRadians(final String s) {
-        if (s.isBlank()) {
+        if (Objects.isNull(s) || s.isBlank()) {
             return Optional.empty();
         }
         try {
-            return Optional.of(Double.parseDouble(s));
+            return Optional.of(Double.parseDouble(s.strip()));
         } catch (final Throwable e) {
             LOG.warn("Invalid number format for geographic coordinate: {}", s, e);
             return Optional.empty();
