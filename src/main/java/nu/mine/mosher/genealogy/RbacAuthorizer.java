@@ -121,8 +121,9 @@ public class RbacAuthorizer {
             statement.setInt(1, idUser);
             try (final var resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
+                    final var gid = resultSet.getString(1);
                     if (!resultSet.wasNull()) {
-                        return resultSet.getString(1);
+                        return gid.strip();
                     }
                 }
             }
